@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en" data-theme="enso" data-mode="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Mindful Engineer — Benjamin Kitt</title>
+  <meta name="description" content="A working notebook by Benjamin Kitt — essays, notes, and fragments on building software with the patience it deserves." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css?v=13" />
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script>
+    // Tweakable defaults — edited live via Tweaks panel
+    window.TWEAKS = /*EDITMODE-BEGIN*/{
+      "theme": "monastery",
+      "mode": "light",
+      "monasteryVariant": "mechanism"
+    }/*EDITMODE-END*/;
+  </script>
+
+  <script src="data.js"></script>
+  <script type="text/babel" src="components.jsx"></script>
+  <script type="text/babel" src="davinci.jsx"></script>
+  <script type="text/babel" src="pages.jsx"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Apply persisted tweaks on load
+    (function applyTweaks(){
+      const t = window.TWEAKS || {};
+      const savedTheme = localStorage.getItem("tme_theme") || t.theme || "enso";
+      const savedMode = localStorage.getItem("tme_mode") || t.mode || "light";
+      const savedVariant = localStorage.getItem("tme_variant") || t.monasteryVariant || "vitruvian";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      document.documentElement.setAttribute("data-mode", savedMode);
+      document.documentElement.setAttribute("data-variant", savedVariant);
+    })();
+
+    function useRoute() {
+      const [route, setRoute] = useState(window.location.hash.replace("#","") || "/");
+      useEffect(() => {
+        const onHash = () => setRoute(window.location.hash.replace("#","") || "/");
+        window.addEventListener("hashchange", onHash);
+        return () => window.removeEventListener("hashchange", onHash);
+      }, []);
+      return route;
+    }
+
+    function Router({ route }) {
+      // Parse: /, /essays, /notes, /archive, /about, /now, /essay/:id, /note/:id, /link/:id, /snippet/:id
+      if (route === "/" || route === "") return <HomePage />;
+      if (route === "/essays") return <EssaysPage />;
+      if (route === "/notes") return <NotesPage />;
+      if (route === "/archive") return <ArchivePage />;
+      if (route === "/about") return <AboutPage />;
+      if (route === "/now") return <NowPage />;
+      const essayMatch = route.match(/^\/essay\/(.+)$/);
+      if (essayMatch) return <EssayPage id={essayMatch[1]} />;
+      const noteMatch = route.match(/^\/note\/(.+)$/);
+      if (noteMatch) return <SingleItemPage id={noteMatch[1]} type="note" />;
+      const linkMatch = route.match(/^\/link\/(.+)$/);
+      if (linkMatch) return <SingleItemPage id={linkMatch[1]} type="link" />;
+      const snipMatch = route.match(/^\/snippet\/(.+)$/);
+      if (snipMatch) return <SingleItemPage id={snipMatch[1]} type="snippet" />;
+      return <HomePage />;
+    }
+
+    function Tweaks({ open, onClose }) {
+      const [theme, setTheme] = useState(document.documentElement.getAttribute("data-theme") || "enso");
+      const [mode, setMode] = useState(document.documentElement.getAttribute("data-mode") || "light");
+      const [variant, setVariant] = useState(document.documentElement.getAttribute("data-variant") || "vitruvian");
+
+      const setT = (t) => {
+        setTheme(t);
+        document.documentElement.setAttribute("data-theme", t);
+        localStorage.setItem("tme_theme", t);
+        window.parent.postMessage({type:'__edit_mode_set_keys', edits:{ theme: t }}, '*');
+      };
+      const setM = (m) => {
+        setMode(m);
+        document.documentElement.setAttribute("data-mode", m);
+        localStorage.setItem("tme_mode", m);
+        window.parent.postMessage({type:'__edit_mode_set_keys', edits:{ mode: m }}, '*');
+      };
+      const setV = (v) => {
+        setVariant(v);
+        document.documentElement.setAttribute("data-variant", v);
+        localStorage.setItem("tme_variant", v);
+        window.parent.postMessage({type:'__edit_mode_set_keys', edits:{ monasteryVariant: v }}, '*');
+      };
+
+      if (!open) return null;
+      return (
+        <div className="tweaks open">
+          <h4>
+            <span>Tweaks</span>
+            <button onClick={onClose}>×</button>
+          </h4>
+          <div className="tweak-group">
+            <div className="tweak-group-label">Aesthetic</div>
+            <div className="tweak-options">
+              <button className={theme==="enso"?"on":""} onClick={()=>setT("enso")}>enso</button>
+              <button className={theme==="graph"?"on":""} onClick={()=>setT("graph")}>graph</button>
+              <button className={theme==="monastery"?"on":""} onClick={()=>setT("monastery")}>monastery</button>
+            </div>
+          </div>
+          <div className="tweak-group">
+            <div className="tweak-group-label">Mode</div>
+            <div className="tweak-options" style={{gridTemplateColumns:"1fr 1fr"}}>
+              <button className={mode==="light"?"on":""} onClick={()=>setM("light")}>light</button>
+              <button className={mode==="dark"?"on":""} onClick={()=>setM("dark")}>dark</button>
+            </div>
+          </div>
+          {/* Da Vinci motifs are always on in monastery; no sub-toggle */}
+          <div style={{fontSize:"var(--fs-micro)", color:"var(--c-ink-mute)", lineHeight:1.5, paddingTop:"var(--s-3)", borderTop:"1px solid var(--c-rule-soft)", letterSpacing:"0.04em"}}>
+            {theme === "monastery" ? (
+              <>
+                Four Da Vinci motifs:<br/>
+                <span style={{color:"var(--c-ink-soft)"}}>vitruvian</span> — proportional figure study.<br/>
+                <span style={{color:"var(--c-ink-soft)"}}>mechanism</span> — gear train in the corner.<br/>
+                <span style={{color:"var(--c-ink-soft)"}}>margin</span> — notebook marginalia.<br/>
+                <span style={{color:"var(--c-ink-soft)"}}>geometry</span> — compass construction.
+              </>
+            ) : (
+              <>
+                Three takes on the same site:<br/>
+                <span style={{color:"var(--c-ink-soft)"}}>enso</span> — warm paper, serif voice.<br/>
+                <span style={{color:"var(--c-ink-soft)"}}>graph</span> — blueprint grid, cooler ink.<br/>
+                <span style={{color:"var(--c-ink-soft)"}}>monastery</span> — deeper warmth, more ink.
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const route = useRoute();
+      const [tweaksOpen, setTweaksOpen] = useState(false);
+      const [editModeActive, setEditModeActive] = useState(false);
+
+      useEffect(() => {
+        function onMsg(e) {
+          if (!e.data) return;
+          if (e.data.type === "__activate_edit_mode") { setEditModeActive(true); setTweaksOpen(true); }
+          if (e.data.type === "__deactivate_edit_mode") { setEditModeActive(false); setTweaksOpen(false); }
+        }
+        window.addEventListener("message", onMsg);
+        window.parent.postMessage({ type: "__edit_mode_available" }, "*");
+        return () => window.removeEventListener("message", onMsg);
+      }, []);
+
+      return (
+        <div className="site">
+          <Nav route={route} onToggleTweaks={() => setTweaksOpen(o => !o)} />
+          <main className="main">
+            <Router route={route} />
+          </main>
+          <Footer />
+          <Tweaks open={tweaksOpen} onClose={() => setTweaksOpen(false)} />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
