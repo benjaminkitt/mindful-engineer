@@ -1,0 +1,20 @@
+{
+  "taskId": "tsk_1776876562899_ew0y0o",
+  "runId": "run_1776877030813_un74d7",
+  "kind": "final",
+  "attemptNumber": 1,
+  "ok": true,
+  "commandResults": [
+    {
+      "command": "echo 'no validation configured yet'",
+      "ok": true,
+      "exitCode": 0,
+      "stdout": "no validation configured yet\n",
+      "stderr": "",
+      "startedAt": "2026-04-22T17:06:48.252Z",
+      "finishedAt": "2026-04-22T17:06:48.257Z",
+      "durationMs": 5
+    }
+  ],
+  "createdAt": "2026-04-22T17:06:48.257Z"
+}
