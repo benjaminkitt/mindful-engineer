@@ -1,0 +1,26 @@
+---
+import { formatDateShort, getEntryLabel, getEntryUrl } from '@/lib/content';
+import type { Entry } from '@/content/entries';
+
+interface Props {
+  groups: Array<{ year: number; items: Entry[] }>;
+}
+
+const { groups } = Astro.props;
+---
+
+<div class="archive-table">
+  {groups.map((group) => (
+    <section>
+      <div class="archive-year">§ {group.year} · {group.items.length} entries</div>
+      {group.items.map((entry) => (
+        <a href={getEntryUrl(entry)} class="archive-row">
+          <span>{formatDateShort(entry.publishedAt)}</span>
+          <span>{getEntryLabel(entry.type)}</span>
+          <span>{'title' in entry && entry.title ? entry.title : entry.type === 'note' ? entry.body : entry.id}</span>
+          <span>{entry.type === 'article' ? `${entry.readMinutes} min` : ''}</span>
+        </a>
+      ))}
+    </section>
+  ))}
+</div>

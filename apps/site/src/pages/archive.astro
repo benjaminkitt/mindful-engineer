@@ -1,0 +1,20 @@
+---
+import ArchiveTable from '@/components/ArchiveTable.astro';
+import PageHeader from '@/components/PageHeader.astro';
+import { getArchiveGroups, getRecentStream } from '@/lib/content';
+import PublicLayout from '@/layouts/PublicLayout.astro';
+
+const groups = getArchiveGroups();
+const allEntries = getRecentStream();
+---
+
+<PublicLayout title="Archive" pathname="/archive">
+  <PageHeader
+    kicker="complete · archive"
+    title="Archive"
+    summary="Everything published, in chronological order."
+    meta={[{ label: 'entries', value: allEntries.length }, { label: 'years', value: groups.length }]}
+  />
+
+  <ArchiveTable groups={groups} />
+</PublicLayout>

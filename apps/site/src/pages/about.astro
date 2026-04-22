@@ -1,0 +1,27 @@
+---
+import PageHeader from '@/components/PageHeader.astro';
+import { getStaticPage } from '@/lib/content';
+import PublicLayout from '@/layouts/PublicLayout.astro';
+
+const about = getStaticPage('about');
+---
+
+<PublicLayout title="About" pathname="/about">
+  <PageHeader kicker="static · about" title={about.title} summary={about.summary} />
+
+  <article class="static-page">
+    <p>{about.intro}</p>
+    {about.body.map((paragraph: string) => (
+      <p>{paragraph}</p>
+    ))}
+
+    <dl class="page-facts">
+      {about.facts.map((fact: (typeof about.facts)[number]) => (
+        <div>
+          <dt>{fact.label}</dt>
+          <dd>{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
+  </article>
+</PublicLayout>

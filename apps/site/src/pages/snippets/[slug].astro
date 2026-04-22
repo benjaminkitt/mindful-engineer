@@ -1,0 +1,27 @@
+---
+import type { SnippetEntry } from '@/content/entries';
+import { entries } from '@/content/entries';
+import { formatDate } from '@/lib/content';
+import PublicLayout from '@/layouts/PublicLayout.astro';
+
+export function getStaticPaths() {
+  return entries
+    .filter((entry): entry is SnippetEntry => entry.type === 'snippet')
+    .map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+---
+
+<PublicLayout title={entry.title} description={entry.summary} pathname={`/snippets/${entry.slug}`}>
+  <article class="detail-header">
+    <div class="hero__kicker">Snippet · {formatDate(entry.publishedAt)} · {entry.language}</div>
+    <h1>{entry.title}</h1>
+    <p class="detail-subtitle">Compact, code-forward notes worth keeping canonically.</p>
+  </article>
+
+  <div class="detail-body">
+    <pre>{entry.code}</pre>
+    <p>{entry.summary}</p>
+  </div>
+</PublicLayout>

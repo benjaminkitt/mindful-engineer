@@ -1,0 +1,32 @@
+---
+import PageHeader from '@/components/PageHeader.astro';
+import { getStaticPage } from '@/lib/content';
+import PublicLayout from '@/layouts/PublicLayout.astro';
+
+const now = getStaticPage('now');
+---
+
+<PublicLayout title="Now" pathname="/now">
+  <PageHeader
+    kicker="static · now"
+    title={now.title}
+    summary={now.summary}
+    meta={[{ label: 'updated', value: now.updatedAt }]}
+  />
+
+  <section class="now-grid">
+    {now.blocks.map((block: (typeof now.blocks)[number], index: number) => (
+      <article class:list={['now-block', index === 0 ? 'now-block--wide' : undefined]}>
+        <div class="now-block__label">{block.title}</div>
+        {'body' in block && <p>{block.body}</p>}
+        {'list' in block && (
+          <ul>
+            {block.list.map((item: string) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        )}
+      </article>
+    ))}
+  </section>
+</PublicLayout>

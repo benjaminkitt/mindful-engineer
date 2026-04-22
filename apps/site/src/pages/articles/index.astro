@@ -1,0 +1,23 @@
+---
+import EntryCard from '@/components/EntryCard.astro';
+import PageHeader from '@/components/PageHeader.astro';
+import { getEntriesByType } from '@/lib/content';
+import PublicLayout from '@/layouts/PublicLayout.astro';
+
+const articles = getEntriesByType('article');
+---
+
+<PublicLayout title="Articles" pathname="/articles">
+  <PageHeader
+    kicker="collected · articles"
+    title="Articles"
+    summary="Longer pieces. Published when they are ready, not to a schedule."
+    meta={[{ label: 'published', value: articles.length }]}
+  />
+
+  <div class="entry-grid">
+    {articles.map((entry) => (
+      <EntryCard entry={entry} featured={entry.featured ?? false} />
+    ))}
+  </div>
+</PublicLayout>

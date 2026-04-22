@@ -1,0 +1,34 @@
+---
+import EntryCard from '@/components/EntryCard.astro';
+import PageHeader from '@/components/PageHeader.astro';
+import SectionHeader from '@/components/SectionHeader.astro';
+import { getContentCounts, getFeaturedArticles, getRecentStream } from '@/lib/content';
+import PublicLayout from '@/layouts/PublicLayout.astro';
+
+const featured = getFeaturedArticles();
+const stream = getRecentStream().filter((entry) => !('featured' in entry && entry.featured));
+const meta = getContentCounts().map((item) => ({ label: item.type, value: item.count }));
+---
+
+<PublicLayout pathname="/">
+  <PageHeader
+    kicker="mindful.engineer · a working notebook"
+    title="Moving fast. Being present."
+    summary="A monastery-first reading surface for articles, notes, links, and fragments on software, change, and the people along for the ride."
+    meta={meta}
+  />
+
+  <SectionHeader title="Featured writing" detail={`${featured.length} articles`} />
+  <div class="entry-grid">
+    {featured.map((entry) => (
+      <EntryCard entry={entry} featured />
+    ))}
+  </div>
+
+  <SectionHeader title="Recent stream" detail="Across all published types" />
+  <div class="entry-grid">
+    {stream.map((entry) => (
+      <EntryCard entry={entry} />
+    ))}
+  </div>
+</PublicLayout>

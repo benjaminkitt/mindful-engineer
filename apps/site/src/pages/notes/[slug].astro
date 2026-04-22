@@ -1,0 +1,25 @@
+---
+import type { NoteEntry } from '@/content/entries';
+import { entries } from '@/content/entries';
+import { formatDate } from '@/lib/content';
+import PublicLayout from '@/layouts/PublicLayout.astro';
+
+export function getStaticPaths() {
+  return entries
+    .filter((entry): entry is NoteEntry => entry.type === 'note')
+    .map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+---
+
+<PublicLayout title={entry.title ?? 'Note'} description={entry.body} pathname={`/notes/${entry.slug}`}>
+  <article class="detail-header">
+    <div class="hero__kicker">Note · {formatDate(entry.publishedAt, true)}</div>
+    <h1>{entry.title ?? 'Note'}</h1>
+  </article>
+
+  <div class="detail-body">
+    <p style="font-size:1.5rem;font-style:italic;">{entry.body}</p>
+  </div>
+</PublicLayout>

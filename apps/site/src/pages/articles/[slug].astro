@@ -1,0 +1,61 @@
+---
+import type { ArticleEntry } from '@/content/entries';
+import { entries } from '@/content/entries';
+import { formatDate, getArticleNeighbors } from '@/lib/content';
+import PublicLayout from '@/layouts/PublicLayout.astro';
+
+export function getStaticPaths() {
+  return entries
+    .filter((entry): entry is ArticleEntry => entry.type === 'article')
+    .map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const neighbors = getArticleNeighbors(entry);
+---
+
+<PublicLayout title={entry.title} description={entry.summary} pathname={`/articles/${entry.slug}`}>
+  <article class="detail-header">
+    <div class="hero__kicker">Article · {formatDate(entry.publishedAt)} · {entry.readMinutes} minute read</div>
+    <h1>{entry.title}</h1>
+    <p class="detail-subtitle">{entry.subtitle}</p>
+    <div class="detail-meta">
+      <span>Benjamin Kitt</span>
+      {entry.tags && <span>Filed under: {entry.tags.join(', ')}</span>}
+    </div>
+  </article>
+
+  <div class="detail-body">
+    {entry.body.map((block) => {
+      if (block.kind === 'paragraph') return <p>{block.text}</p>;
+      if (block.kind === 'heading') return <h2>{block.text}</h2>;
+      if (block.kind === 'pullquote') return <blockquote>“{block.text}”</blockquote>;
+      if (block.kind === 'ordered-list') {
+        return (
+          <ol>
+            {block.items.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ol>
+        );
+      }
+    })}
+  </div>
+
+  <nav class="detail-footer" aria-label="Article neighbors">
+    <div>
+      {neighbors.older && (
+        <a href={`/articles/${neighbors.older.slug}`}>
+          ← Older · {neighbors.older.title}
+        </a>
+      )}
+    </div>
+    <div>
+      {neighbors.newer && (
+        <a href={`/articles/${neighbors.newer.slug}`}>
+          Newer → {neighbors.newer.title}
+        </a>
+      )}
+    </div>
+  </nav>
+</PublicLayout>

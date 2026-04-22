@@ -1,0 +1,29 @@
+---
+import PageHeader from '@/components/PageHeader.astro';
+import { formatDate, getEntriesByType, getEntryUrl } from '@/lib/content';
+import PublicLayout from '@/layouts/PublicLayout.astro';
+
+const links = getEntriesByType('link');
+---
+
+<PublicLayout title="Links" pathname="/links">
+  <PageHeader
+    kicker="short-form · links"
+    title="Links"
+    summary="Things worth keeping, with a short note on why."
+    meta={[{ label: 'published', value: links.length }]}
+  />
+
+  <div class="list-stack">
+    {links.map((link) => (
+      <a href={getEntryUrl(link)} class="list-row">
+        <div class="list-row__date">{formatDate(link.publishedAt)}</div>
+        <div class="list-row__body">
+          <h2>{link.title}</h2>
+          <div class="entry-card__source">→ {link.source}</div>
+          <p>{link.commentary}</p>
+        </div>
+      </a>
+    ))}
+  </div>
+</PublicLayout>

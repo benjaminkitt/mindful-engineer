@@ -1,0 +1,45 @@
+---
+import { formatDate, getEntryLabel, getEntryUrl } from '@/lib/content';
+import type { Entry } from '@/content/entries';
+
+interface Props {
+  entry: Entry;
+  featured?: boolean;
+}
+
+const { entry, featured = false } = Astro.props;
+const href = getEntryUrl(entry);
+const label = getEntryLabel(entry.type);
+---
+
+<a href={href} class:list={[featured ? 'entry-card entry-card--featured' : 'entry-card', `entry-card--${entry.type}`]}>
+  <div class="entry-card__meta">
+    <span>{label}</span>
+    <span>{formatDate(entry.publishedAt, entry.type === 'note')}</span>
+  </div>
+
+  {'title' in entry && entry.title ? <h3>{entry.title}</h3> : <h3>{formatDate(entry.publishedAt, true)}</h3>}
+
+  {entry.type === 'article' && <p>{entry.summary}</p>}
+  {entry.type === 'note' && <p class="entry-card__note">{entry.body}</p>}
+  {entry.type === 'link' && (
+    <>
+      <p class="entry-card__source">→ {entry.source}</p>
+      <p>{entry.commentary}</p>
+    </>
+  )}
+  {entry.type === 'snippet' && (
+    <>
+      <pre>{entry.code}</pre>
+      <p>{entry.summary}</p>
+    </>
+  )}
+
+  {entry.type === 'article' && entry.tags && (
+    <div class="entry-card__tags">
+      {entry.tags.map((tag) => (
+        <span>#{tag}</span>
+      ))}
+    </div>
+  )}
+</a>

@@ -1,0 +1,27 @@
+---
+import PageHeader from '@/components/PageHeader.astro';
+import { formatDate, getEntriesByType, getEntryUrl } from '@/lib/content';
+import PublicLayout from '@/layouts/PublicLayout.astro';
+
+const notes = getEntriesByType('note');
+---
+
+<PublicLayout title="Notes" pathname="/notes">
+  <PageHeader
+    kicker="short-form · notes"
+    title="Notes"
+    summary="Small thoughts, in their original size."
+    meta={[{ label: 'published', value: notes.length }]}
+  />
+
+  <div class="list-stack">
+    {notes.map((note) => (
+      <a href={getEntryUrl(note)} class="list-row">
+        <div class="list-row__date">{formatDate(note.publishedAt, true)}</div>
+        <div class="list-row__body">
+          <p><em>{note.body}</em></p>
+        </div>
+      </a>
+    ))}
+  </div>
+</PublicLayout>
