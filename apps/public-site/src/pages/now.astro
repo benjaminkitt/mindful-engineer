@@ -1,0 +1,50 @@
+---
+import InstrumentFigure from "../components/InstrumentFigure.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { formatDisplayDate, nowPage } from "../data/site";
+---
+<BaseLayout title="Now | The Mindful Engineer" description="Current snapshot for The Mindful Engineer." path="/now">
+  <div class="container">
+    <section class="hero" style="padding-top: var(--s-5); padding-bottom: var(--s-6);">
+      <InstrumentFigure variant="horologium" />
+      <div class="hero-kicker"><span>/now / updated {formatDisplayDate(nowPage.updated)}</span></div>
+      <h1 class="hero-title" style="font-size: clamp(32px, 4.5vw, 52px);">What I'm doing now</h1>
+      <p class="hero-sub">A now page in the Derek Sivers tradition. A snapshot, not a statement.</p>
+    </section>
+
+    <div class="now-grid">
+      <div class="now-block wide">
+        <div class="now-label">Working on</div>
+        <p>{nowPage.working}</p>
+      </div>
+      <div class="now-block">
+        <div class="now-label">Located</div>
+        <p>{nowPage.location}</p>
+      </div>
+      <div class="now-block">
+        <div class="now-label">Learning</div>
+        <p>{nowPage.learning}</p>
+      </div>
+      <div class="now-block wide">
+        <div class="now-label">Reading</div>
+        <ul>
+          {nowPage.reading.map((entry) => (
+            <li>{entry.title} <span class="author">- {entry.author}</span></li>
+          ))}
+        </ul>
+      </div>
+      <div class="now-block wide">
+        <div class="now-label">Current focus</div>
+        <ul>
+          {nowPage.focus.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <div class="now-block wide">
+        <div class="now-label">Listening</div>
+        <p>{nowPage.listening}</p>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

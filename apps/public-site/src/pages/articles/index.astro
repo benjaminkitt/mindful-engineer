@@ -1,0 +1,32 @@
+---
+import InstrumentFigure from "../../components/InstrumentFigure.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { articles, getEntryPath } from "../../data/site";
+---
+<BaseLayout title="Articles | The Mindful Engineer" description="Long-form writing from The Mindful Engineer." path="/articles">
+  <div class="container">
+    <section class="hero" style="padding-top: var(--s-5); padding-bottom: var(--s-6);">
+      <InstrumentFigure variant="codex" />
+      <div class="hero-kicker"><span>collected / articles</span></div>
+      <h1 class="hero-title" style="font-size: clamp(32px, 4.5vw, 52px);">Articles</h1>
+      <p class="hero-sub">Longer pieces. Published when they're ready, not to a schedule.</p>
+    </section>
+
+    <div class="featured-grid">
+      {articles.map((article) => (
+        <a class="featured-card" href={getEntryPath(article)}>
+          <div class="featured-kicker">
+            <span>Article / {article.date}</span>
+            <span>{article.readMinutes} min</span>
+          </div>
+          <h2 class="featured-title">{article.title}</h2>
+          <div class="featured-sub">{article.deck}</div>
+          <p class="featured-excerpt">{article.summary}</p>
+          <div class="featured-tags">
+            {article.tags.map((tag) => <span>{tag}</span>)}
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

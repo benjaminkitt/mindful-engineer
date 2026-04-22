@@ -1,0 +1,30 @@
+---
+import InstrumentFigure from "../../components/InstrumentFigure.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatDisplayDateShort, getEntryPath, notes } from "../../data/site";
+---
+<BaseLayout title="Notes | The Mindful Engineer" description="Short-form notes from The Mindful Engineer." path="/notes">
+  <div class="container">
+    <section class="hero" style="padding-top: var(--s-5); padding-bottom: var(--s-6);">
+      <InstrumentFigure variant="fragments" />
+      <div class="hero-kicker"><span>short-form / notes</span></div>
+      <h1 class="hero-title" style="font-size: clamp(32px, 4.5vw, 52px);">Notes &amp; fragments</h1>
+      <p class="hero-sub">Small thoughts, in their original size. Roughly daily, sometimes not.</p>
+    </section>
+
+    <div class="notes-grid">
+      {notes.map((note) => (
+        <a class="note-row" href={getEntryPath(note)}>
+          <div class="date">
+            {formatDisplayDateShort(note.date)}<br />
+            <span style="color: var(--c-ink-mute);">{new Date(note.date).getFullYear()}</span>
+            <br /><span class="micro" style="letter-spacing: 0.12em; margin-top: 4px; display: inline-block;">note</span>
+          </div>
+          <div class="note-text">
+            <em style="font-style: italic;">{note.body}</em>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

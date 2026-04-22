@@ -1,0 +1,35 @@
+---
+import {
+  type StreamEntry,
+  formatArchiveDate,
+  getEntryPath,
+} from "../data/site";
+
+interface Props {
+  groups: Array<{ year: string; entries: StreamEntry[] }>;
+}
+
+const { groups } = Astro.props;
+---
+<div class="archive-table">
+  {groups.map((group) => (
+    <section>
+      <div class="archive-year">{group.year} / {group.entries.length} entries</div>
+
+      {group.entries.map((entry) => (
+        <a class="archive-row" href={getEntryPath(entry)}>
+          <span class="archive-date">{formatArchiveDate(entry.date)}</span>
+          <span class="archive-type">{entry.kind === "article" ? "article" : entry.kind}</span>
+          <span class="archive-title">
+            {entry.kind === "article" || entry.kind === "link" || entry.kind === "snippet"
+              ? entry.title
+              : entry.body}
+          </span>
+          <span class="archive-read">
+            {entry.kind === "article" ? `${entry.readMinutes} min` : entry.kind === "snippet" ? entry.language : ""}
+          </span>
+        </a>
+      ))}
+    </section>
+  ))}
+</div>

@@ -1,0 +1,31 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatDisplayDate, getEntryPath, links, type LinkEntry } from "../../data/site";
+
+export function getStaticPaths() {
+  return links.map((link) => ({
+    params: { slug: link.slug },
+    props: { link },
+  }));
+}
+
+const { link } = Astro.props as { link: LinkEntry };
+---
+<BaseLayout title={`${link.title} | The Mindful Engineer`} description={link.summary} path={getEntryPath(link)}>
+  <div class="container">
+    <div class="essay-header" style="max-width: var(--measure-narrow);">
+      <div class="essay-kicker">
+        <span>link</span>
+        <span>/</span>
+        <span>{formatDisplayDate(link.date)}</span>
+      </div>
+      <h1 class="essay-title" style="font-size: clamp(28px, 4vw, 42px);">{link.title}</h1>
+    </div>
+    <div class="essay-body" style="max-width: var(--measure-narrow);">
+      <p style="font-family: var(--ff-mono); font-size: var(--fs-ui); color: var(--c-ink-mute);">
+        Source / <a href={link.url}>{link.source}</a>
+      </p>
+      <p>{link.body}</p>
+    </div>
+  </div>
+</BaseLayout>

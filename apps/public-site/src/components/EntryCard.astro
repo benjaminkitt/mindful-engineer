@@ -1,0 +1,61 @@
+---
+import {
+  type StreamEntry,
+  formatDisplayDate,
+  formatDisplayDateTime,
+  getEntryPath,
+} from "../data/site";
+
+interface Props {
+  entry: StreamEntry;
+}
+
+const { entry } = Astro.props;
+
+const href = getEntryPath(entry);
+const timestamp = entry.kind === "note" ? formatDisplayDateTime(entry.date) : formatDisplayDate(entry.date);
+---
+{entry.kind === "article" && (
+  <a class="card card-essay" href={href}>
+    <div class="card-kicker">
+      <span class="type-tag">Article</span>
+      <span>{timestamp} / {entry.readMinutes} min</span>
+    </div>
+    <h3 class="card-title">{entry.title}</h3>
+    <p class="card-body">{entry.summary}</p>
+  </a>
+)}
+
+{entry.kind === "note" && (
+  <a class="card card-note" href={href}>
+    <div class="card-kicker">
+      <span class="type-tag">Note</span>
+      <span>{timestamp}</span>
+    </div>
+    <p class="card-body">{entry.body}</p>
+  </a>
+)}
+
+{entry.kind === "link" && (
+  <a class="card card-link" href={href}>
+    <div class="card-kicker">
+      <span class="type-tag">Link</span>
+      <span>{timestamp}</span>
+    </div>
+    <h3 class="card-title">{entry.title}</h3>
+    <div class="source">-&gt; {entry.source}</div>
+    <p class="card-body">{entry.body}</p>
+  </a>
+)}
+
+{entry.kind === "snippet" && (
+  <a class="card card-snippet" href={href}>
+    <div class="card-kicker">
+      <span class="type-tag">Snippet / {entry.language}</span>
+      <span>{timestamp}</span>
+    </div>
+    <h3 class="card-title">{entry.title}</h3>
+    <pre><code>{entry.code}</code></pre>
+    <p class="card-body">{entry.body}</p>
+  </a>
+)}

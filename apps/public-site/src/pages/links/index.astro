@@ -1,0 +1,32 @@
+---
+import InstrumentFigure from "../../components/InstrumentFigure.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatDisplayDateShort, getEntryPath, links } from "../../data/site";
+---
+<BaseLayout title="Links | The Mindful Engineer" description="Annotated links from The Mindful Engineer." path="/links">
+  <div class="container">
+    <section class="hero" style="padding-top: var(--s-5); padding-bottom: var(--s-6);">
+      <InstrumentFigure variant="fragments" />
+      <div class="hero-kicker"><span>annotated / links</span></div>
+      <h1 class="hero-title" style="font-size: clamp(32px, 4.5vw, 52px);">Links &amp; references</h1>
+      <p class="hero-sub">References worth keeping, with a sentence about why they stayed with me.</p>
+    </section>
+
+    <div class="notes-grid">
+      {links.map((link) => (
+        <a class="note-row" href={getEntryPath(link)}>
+          <div class="date">
+            {formatDisplayDateShort(link.date)}<br />
+            <span style="color: var(--c-ink-mute);">{new Date(link.date).getFullYear()}</span>
+            <br /><span class="micro" style="letter-spacing: 0.12em; margin-top: 4px; display: inline-block;">link</span>
+          </div>
+          <div class="note-text">
+            <div class="link-source">-&gt; {link.source}</div>
+            <div class="link-title">{link.title}</div>
+            <div class="link-summary">{link.body}</div>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,27 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatDisplayDateTime, getEntryPath, notes, type Note } from "../../data/site";
+
+export function getStaticPaths() {
+  return notes.map((note) => ({
+    params: { slug: note.slug },
+    props: { note },
+  }));
+}
+
+const { note } = Astro.props as { note: Note };
+---
+<BaseLayout title="Note | The Mindful Engineer" description={note.body} path={getEntryPath(note)}>
+  <div class="container">
+    <div class="essay-header" style="max-width: var(--measure-narrow);">
+      <div class="essay-kicker">
+        <span>note</span>
+        <span>/</span>
+        <span>{formatDisplayDateTime(note.date)}</span>
+      </div>
+    </div>
+    <div class="essay-body" style="max-width: var(--measure-narrow);">
+      <p style="font-size: 26px; line-height: 1.45; font-style: italic;">{note.body}</p>
+    </div>
+  </div>
+</BaseLayout>

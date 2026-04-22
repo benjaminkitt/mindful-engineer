@@ -1,0 +1,36 @@
+---
+import InstrumentFigure from "./InstrumentFigure.astro";
+import { navigation, siteMeta } from "../data/site";
+---
+<footer class="footer">
+  <InstrumentFigure variant="mechanism" />
+  <div class="container footer-inner">
+    <div>
+      <div class="footer-title">{siteMeta.domain}</div>
+      <div class="footer-lede">A quiet place to think out loud about software.</div>
+    </div>
+
+    <div>
+      <div class="footer-title">Sections</div>
+      <div class="footer-links">
+        {navigation.slice(1).map((item) => (
+          <a href={item.href}>{item.label}</a>
+        ))}
+      </div>
+    </div>
+
+    <div>
+      <div class="footer-title">Elsewhere</div>
+      <div class="footer-links">
+        <a href={siteMeta.repository}>Source repository</a>
+        <a href={`mailto:${siteMeta.email}`}>{siteMeta.email}</a>
+        <span>Cloudflare Pages deployment target</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container footer-meta">
+    <span>(c) 2026 {siteMeta.author} / Built by hand</span>
+    <span>v0.1.0 / Astro / monastery-first</span>
+  </div>
+</footer>

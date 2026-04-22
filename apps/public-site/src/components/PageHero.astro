@@ -1,0 +1,38 @@
+---
+import InstrumentFigure from "./InstrumentFigure.astro";
+
+interface Props {
+  eyebrow: string;
+  title: string;
+  deck: string;
+  meta?: string[];
+  figure?: "geometry" | "codex" | "margin" | "mechanism";
+  compact?: boolean;
+}
+
+const {
+  eyebrow,
+  title,
+  deck,
+  meta = [],
+  figure = "geometry",
+  compact = false,
+} = Astro.props;
+---
+<section class:list={["page-hero", compact && "page-hero--compact"]}>
+  <div class="page-hero__copy">
+    <p class="eyebrow">{eyebrow}</p>
+    <h1 class="page-hero__title">{title}</h1>
+    <p class="page-hero__deck">{deck}</p>
+    {meta.length > 0 && (
+      <ul class="page-hero__meta" aria-label="page highlights">
+        {meta.map((item) => <li>{item}</li>)}
+      </ul>
+    )}
+  </div>
+
+  <div class="page-hero__figure">
+    <InstrumentFigure variant={figure} />
+  </div>
+</section>
+

@@ -1,0 +1,63 @@
+---
+import EntryCard from "../components/EntryCard.astro";
+import InstrumentFigure from "../components/InstrumentFigure.astro";
+import SectionHeading from "../components/SectionHeading.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import {
+  getCounts,
+  getEntryPath,
+  getFeaturedArticles,
+  getRecentStream,
+  siteMeta,
+} from "../data/site";
+
+const counts = getCounts();
+const featured = getFeaturedArticles();
+const stream = getRecentStream(8);
+---
+<BaseLayout title={siteMeta.name} description={siteMeta.description} path="/">
+  <div class="container">
+    <section class="hero">
+      <InstrumentFigure variant="geometry" />
+      <div class="hero-kicker">
+        <span>mindful.engineer / a working notebook</span>
+      </div>
+      <h1 class="hero-title full-width">
+        Moving fast. <em>Being Present.</em>
+      </h1>
+      <p class="hero-sub">
+        A working notebook by Benjamin Kitt - articles, notes, and fragments on shipping software quickly,
+        choosing intentionally, and caring about the people along for the ride.
+      </p>
+      <div class="hero-meta">
+        <span>articles <strong>{counts.article}</strong></span>
+        <span>notes <strong>{counts.note}</strong></span>
+        <span>links <strong>{counts.link}</strong></span>
+        <span>snippets <strong>{counts.snippet}</strong></span>
+      </div>
+    </section>
+
+    <SectionHeading title="Featured writing" count={`${featured.length} articles`} />
+    <div class="featured-grid">
+      {featured.map((article) => (
+        <a class="featured-card" href={getEntryPath(article)}>
+          <div class="featured-kicker">
+            <span>Article / {article.date}</span>
+            <span>{article.readMinutes} min</span>
+          </div>
+          <h2 class="featured-title">{article.title}</h2>
+          <div class="featured-sub">{article.deck}</div>
+          <p class="featured-excerpt">{article.summary}</p>
+          <div class="featured-tags">
+            {article.tags.map((tag) => <span>{tag}</span>)}
+          </div>
+        </a>
+      ))}
+    </div>
+
+    <SectionHeading title="Recent stream" href="/archive" hrefLabel="View archive ->" />
+    <div class="stream">
+      {stream.map((entry) => <EntryCard entry={entry} />)}
+    </div>
+  </div>
+</BaseLayout>

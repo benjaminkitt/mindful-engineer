@@ -1,0 +1,31 @@
+---
+import type { ArticleBlock } from "../data/site";
+
+interface Props {
+  blocks: ArticleBlock[];
+}
+
+const { blocks } = Astro.props;
+---
+{blocks.map((block) => {
+  if (block.type === "paragraph") {
+    return <p>{block.text}</p>;
+  }
+
+  if (block.type === "heading") {
+    return <h2>{block.text}</h2>;
+  }
+
+  if (block.type === "quote") {
+    return <blockquote>{block.text}</blockquote>;
+  }
+
+  return (
+    <ol>
+      {block.items.map((item) => (
+        <li>{item}</li>
+      ))}
+    </ol>
+  );
+})}
+

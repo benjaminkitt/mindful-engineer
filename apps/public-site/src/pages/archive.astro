@@ -1,0 +1,19 @@
+---
+import ArchiveTable from "../components/ArchiveTable.astro";
+import InstrumentFigure from "../components/InstrumentFigure.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getArchiveGroups } from "../data/site";
+
+const groups = getArchiveGroups();
+---
+<BaseLayout title="Archive | The Mindful Engineer" description="Chronological archive for The Mindful Engineer." path="/archive">
+  <div class="container">
+    <section class="hero" style="padding-top: var(--s-5); padding-bottom: var(--s-6);">
+      <InstrumentFigure variant="archive" />
+      <div class="hero-kicker"><span>complete / archive</span></div>
+      <h1 class="hero-title" style="font-size: clamp(32px, 4.5vw, 52px);">Archive</h1>
+      <p class="hero-sub">Everything published, in chronological order.</p>
+    </section>
+    <ArchiveTable groups={groups} />
+  </div>
+</BaseLayout>

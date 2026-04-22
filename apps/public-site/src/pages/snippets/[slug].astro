@@ -1,0 +1,31 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatDisplayDate, getEntryPath, snippets, type Snippet } from "../../data/site";
+
+export function getStaticPaths() {
+  return snippets.map((snippet) => ({
+    params: { slug: snippet.slug },
+    props: { snippet },
+  }));
+}
+
+const { snippet } = Astro.props as { snippet: Snippet };
+---
+<BaseLayout title={`${snippet.title} | The Mindful Engineer`} description={snippet.summary} path={getEntryPath(snippet)}>
+  <div class="container">
+    <div class="essay-header" style="max-width: var(--measure-narrow);">
+      <div class="essay-kicker">
+        <span>snippet</span>
+        <span>/</span>
+        <span>{formatDisplayDate(snippet.date)}</span>
+        <span>/</span>
+        <span>{snippet.language}</span>
+      </div>
+      <h1 class="essay-title" style="font-size: clamp(28px, 4vw, 42px);">{snippet.title}</h1>
+    </div>
+    <div class="essay-body" style="max-width: var(--measure-narrow);">
+      <pre style="font-family: var(--ff-mono); font-size: 14px; line-height: 1.65; background: var(--c-bg-soft); border: 1px solid var(--c-rule); padding: var(--s-5); overflow-x: auto; white-space: pre;"><code>{snippet.code}</code></pre>
+      <p>{snippet.body}</p>
+    </div>
+  </div>
+</BaseLayout>

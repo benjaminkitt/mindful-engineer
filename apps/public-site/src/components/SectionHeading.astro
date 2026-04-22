@@ -1,0 +1,14 @@
+---
+interface Props {
+  title: string;
+  count?: string;
+  href?: string;
+  hrefLabel?: string;
+}
+
+const { title, count, href, hrefLabel } = Astro.props;
+---
+<div class="section-head">
+  <h2>{title}</h2>
+  {href && hrefLabel ? <a class="micro" href={href}>{hrefLabel}</a> : count ? <span class="count">{count}</span> : null}
+</div>
