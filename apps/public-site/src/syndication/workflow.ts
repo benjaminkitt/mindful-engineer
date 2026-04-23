@@ -174,6 +174,32 @@ const isManualPlatform = (platform: SyndicationPlatform) =>
 const isFirstClassPlatform = (platform: SyndicationPlatform) =>
 	firstClassPlatforms.has(platform);
 
+const validateManualResultUrl = (
+	platform: SyndicationPlatform,
+	resultUrl: string,
+) => {
+	const normalizedUrl = nonEmpty(resultUrl, "manual result URL");
+	let parsedUrl: URL;
+
+	try {
+		parsedUrl = new URL(normalizedUrl);
+	} catch {
+		throw new Error(`Manual result URL for ${platform} must be a valid URL`);
+	}
+
+	if (parsedUrl.protocol !== "https:") {
+		throw new Error(`Manual result URL for ${platform} must use https`);
+	}
+
+	if (parsedUrl.hostname !== PLATFORM_CONFIG[platform].hostname) {
+		throw new Error(
+			`Manual result URL for ${platform} must be on ${PLATFORM_CONFIG[platform].hostname}`,
+		);
+	}
+
+	return parsedUrl.toString();
+};
+
 const createInitialVariantState = (
 	platform: SyndicationPlatform,
 ): SyndicationVariantState => ({
@@ -538,13 +564,13 @@ export const markManualVariantPosted = (
 	}
 
 	const variant = state.variants[platform];
-	if (variant.status !== "approved" && variant.status !== "prepared") {
+	if (variant.status !== "approved") {
 		throw new Error(
-			`Variant ${platform} must be prepared or approved before marking posted`,
+			`Variant ${platform} must be approved before marking posted`,
 		);
 	}
 
-	const normalizedUrl = nonEmpty(resultUrl, "manual result URL");
+	const normalizedUrl = validateManualResultUrl(platform, resultUrl);
 	return updateVariant(state, platform, (current) => ({
 		...current,
 		status: "posted",
