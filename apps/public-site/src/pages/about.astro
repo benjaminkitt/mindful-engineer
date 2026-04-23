@@ -1,15 +1,17 @@
 ---
 import InstrumentFigure from "../components/InstrumentFigure.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { aboutPage } from "../data/site";
+import { getAboutPage } from "../data/site";
+
+const aboutPage = await getAboutPage();
 ---
 <BaseLayout title="About | The Mindful Engineer" description={aboutPage.deck} path="/about">
   <div class="container">
     <section class="hero" style="padding-top: var(--s-5); padding-bottom: var(--s-6);">
       <InstrumentFigure variant="vitruvian" />
       <div class="hero-kicker"><span>about / colophon</span></div>
-      <h1 class="hero-title" style="font-size: clamp(32px, 4.5vw, 52px);">I'm Benjamin.</h1>
-      <p class="hero-sub">Tech is my passion, people are my purpose. I thrive at the intersection of both.</p>
+      <h1 class="hero-title" style="font-size: clamp(32px, 4.5vw, 52px);">{aboutPage.title}</h1>
+      <p class="hero-sub">{aboutPage.deck}</p>
     </section>
 
     <div class="about-grid">

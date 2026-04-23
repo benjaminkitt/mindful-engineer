@@ -13,8 +13,12 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",
+    "@astrojs/mdx": "^4.3.14",
     "astro": "^5.7.5",
     "typescript": "^5.8.3",
     "wrangler": "^4.13.2"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.18"
   }
 }

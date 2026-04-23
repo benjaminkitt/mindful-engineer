@@ -4,7 +4,7 @@ import InstrumentFigure from "../components/InstrumentFigure.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getArchiveGroups } from "../data/site";
 
-const groups = getArchiveGroups();
+const groups = await getArchiveGroups();
 ---
 <BaseLayout title="Archive | The Mindful Engineer" description="Chronological archive for The Mindful Engineer." path="/archive">
   <div class="container">

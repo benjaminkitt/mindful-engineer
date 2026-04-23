@@ -1,7 +1,9 @@
 ---
 import InstrumentFigure from "../../components/InstrumentFigure.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { articles, getEntryPath } from "../../data/site";
+import { formatDisplayDate, getArticles, getEntryPath } from "../../data/site";
+
+const articles = await getArticles();
 ---
 <BaseLayout title="Articles | The Mindful Engineer" description="Long-form writing from The Mindful Engineer." path="/articles">
   <div class="container">
@@ -16,7 +18,7 @@ import { articles, getEntryPath } from "../../data/site";
       {articles.map((article) => (
         <a class="featured-card" href={getEntryPath(article)}>
           <div class="featured-kicker">
-            <span>Article / {article.date}</span>
+            <span>Article / {formatDisplayDate(article.date)}</span>
             <span>{article.readMinutes} min</span>
           </div>
           <h2 class="featured-title">{article.title}</h2>

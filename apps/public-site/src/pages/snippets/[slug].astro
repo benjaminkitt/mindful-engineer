@@ -1,8 +1,9 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { formatDisplayDate, getEntryPath, snippets, type Snippet } from "../../data/site";
+import { formatDisplayDate, getEntryPath, getSnippets, type Snippet } from "../../data/site";
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+  const snippets = await getSnippets();
   return snippets.map((snippet) => ({
     params: { slug: snippet.slug },
     props: { snippet },

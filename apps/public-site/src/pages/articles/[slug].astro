@@ -1,16 +1,32 @@
 ---
-import RichContent from "../../components/RichContent.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { articles, type Article, formatDisplayDate, getEntryPath } from "../../data/site";
+import {
+  type Article,
+  formatDisplayDate,
+  getArticleContentBySlug,
+  getArticles,
+  getEntryPath,
+} from "../../data/site";
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+  const articles = await getArticles();
   return articles.map((article) => ({
     params: { slug: article.slug },
     props: { article },
   }));
 }
 
+const articles = await getArticles();
+
 const { article } = Astro.props as { article: Article };
+const articleContent = await getArticleContentBySlug(article.slug);
+
+if (!articleContent) {
+  throw new Error(`Article content not found for slug: ${article.slug}`);
+}
+
+const ArticleContent = articleContent.Content;
+
 const articleIndex = articles.findIndex((candidate) => candidate.slug === article.slug);
 const newer = articleIndex > 0 ? articles[articleIndex - 1] : undefined;
 const older = articleIndex < articles.length - 1 ? articles[articleIndex + 1] : undefined;
@@ -34,7 +50,7 @@ const older = articleIndex < articles.length - 1 ? articles[articleIndex + 1] : 
     </header>
 
     <article class="essay-body">
-      <RichContent blocks={article.blocks} />
+      <ArticleContent />
       <div class="essay-end">o o o</div>
     </article>
 

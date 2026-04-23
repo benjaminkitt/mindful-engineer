@@ -4,6 +4,7 @@ import InstrumentFigure from "../components/InstrumentFigure.astro";
 import SectionHeading from "../components/SectionHeading.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import {
+  formatDisplayDate,
   getCounts,
   getEntryPath,
   getFeaturedArticles,
@@ -11,9 +12,9 @@ import {
   siteMeta,
 } from "../data/site";
 
-const counts = getCounts();
-const featured = getFeaturedArticles();
-const stream = getRecentStream(8);
+const counts = await getCounts();
+const featured = await getFeaturedArticles();
+const stream = await getRecentStream(8);
 ---
 <BaseLayout title={siteMeta.name} description={siteMeta.description} path="/">
   <div class="container">
@@ -42,7 +43,7 @@ const stream = getRecentStream(8);
       {featured.map((article) => (
         <a class="featured-card" href={getEntryPath(article)}>
           <div class="featured-kicker">
-            <span>Article / {article.date}</span>
+            <span>Article / {formatDisplayDate(article.date)}</span>
             <span>{article.readMinutes} min</span>
           </div>
           <h2 class="featured-title">{article.title}</h2>
