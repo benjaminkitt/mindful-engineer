@@ -465,6 +465,7 @@ export const formatDisplayDate = (value: string) => {
 		month: "short",
 		day: "numeric",
 		year: "numeric",
+		timeZone: "UTC",
 	}).format(new Date(value));
 };
 
@@ -482,6 +483,7 @@ export const formatArchiveDate = (value: string) => {
 	return new Intl.DateTimeFormat("en-US", {
 		month: "short",
 		day: "2-digit",
+		timeZone: "UTC",
 	})
 		.format(new Date(value))
 		.toLowerCase();
@@ -491,6 +493,7 @@ export const formatDisplayDateShort = (value: string) => {
 	return new Intl.DateTimeFormat("en-US", {
 		month: "short",
 		day: "2-digit",
+		timeZone: "UTC",
 	})
 		.format(new Date(value))
 		.toLowerCase();
