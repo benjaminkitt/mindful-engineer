@@ -111,6 +111,14 @@ const sortByDateDesc = <T extends BaseEntry>(items: T[]) =>
 		return new Date(right.date).getTime() - new Date(left.date).getTime();
 	});
 
+const requireSlug = (slug: string, entryLabel: string) => {
+	const normalized = slug.trim();
+	if (!normalized) {
+		throw new Error(`Missing slug for ${entryLabel}`);
+	}
+	return normalized;
+};
+
 const toInlineText = (value: string) =>
 	value
 		.replace(/```[\s\S]*?```/g, "")
@@ -120,6 +128,31 @@ const toInlineText = (value: string) =>
 		.replace(/^\s*(?:[-*+]\s+|\d+\.\s+)/gm, "")
 		.replace(/\s+/g, " ")
 		.trim();
+
+const requireInlineText = (value: string, entryLabel: string) => {
+	const text = toInlineText(value);
+	if (!text) {
+		throw new Error(`Missing body content for ${entryLabel}`);
+	}
+	return text;
+};
+
+const assertUniqueSlugs = <T extends BaseEntry>(
+	entries: T[],
+	entryTypeLabel: string,
+) => {
+	const slugs = new Set<string>();
+
+	for (const entry of entries) {
+		if (slugs.has(entry.slug)) {
+			throw new Error(
+				`Duplicate slug "${entry.slug}" detected in ${entryTypeLabel} content`,
+			);
+		}
+
+		slugs.add(entry.slug);
+	}
+};
 
 const toSummary = (value: string, length = 180) => {
 	const text = toInlineText(value);
@@ -237,7 +270,7 @@ const loadContent = async (): Promise<LoadedContent> => {
 			(entry: CollectionEntry<"articles">): Article => ({
 				kind: "article" as const,
 				id: entry.id,
-				slug: entry.slug,
+				slug: requireSlug(entry.slug, `article "${entry.id}"`),
 				title: entry.data.title,
 				deck: entry.data.deck,
 				summary: entry.data.summary,
@@ -249,18 +282,20 @@ const loadContent = async (): Promise<LoadedContent> => {
 			}),
 		),
 	);
+	assertUniqueSlugs(articles, "article");
 
 	const notes: Note[] = sortByDateDesc(
 		noteEntries.map(
 			(entry: CollectionEntry<"notes">): Note => ({
 				kind: "note" as const,
 				id: entry.id,
-				slug: entry.slug,
+				slug: requireSlug(entry.slug, `note "${entry.id}"`),
 				date: entry.data.publishedAt.toISOString(),
-				body: toInlineText(entry.body),
+				body: requireInlineText(entry.body, `note "${entry.id}"`),
 			}),
 		),
 	);
+	assertUniqueSlugs(notes, "note");
 
 	const links: LinkEntry[] = sortByDateDesc(
 		await Promise.all(
@@ -273,7 +308,7 @@ const loadContent = async (): Promise<LoadedContent> => {
 					return {
 						kind: "link" as const,
 						id: entry.id,
-						slug: entry.slug,
+						slug: requireSlug(entry.slug, `link "${entry.id}"`),
 						date: entry.data.publishedAt.toISOString(),
 						title: resolved.title,
 						titleInferred: resolved.inferred,
@@ -286,13 +321,14 @@ const loadContent = async (): Promise<LoadedContent> => {
 			),
 		),
 	);
+	assertUniqueSlugs(links, "link");
 
 	const snippets: Snippet[] = sortByDateDesc(
 		snippetEntries.map(
 			(entry: CollectionEntry<"snippets">): Snippet => ({
 				kind: "snippet" as const,
 				id: entry.id,
-				slug: entry.slug,
+				slug: requireSlug(entry.slug, `snippet "${entry.id}"`),
 				title: entry.data.title,
 				date: entry.data.publishedAt.toISOString(),
 				language: entry.data.language,
@@ -302,9 +338,13 @@ const loadContent = async (): Promise<LoadedContent> => {
 			}),
 		),
 	);
+	assertUniqueSlugs(snippets, "snippet");
 
 	const pageBySlug = new Map<string, CollectionEntry<"pages">>(
-		pageEntries.map((entry: CollectionEntry<"pages">) => [entry.slug, entry]),
+		pageEntries.map((entry: CollectionEntry<"pages">) => [
+			requireSlug(entry.slug, `page "${entry.id}"`),
+			entry,
+		]),
 	);
 
 	const aboutEntry = pageBySlug.get("about");
@@ -317,20 +357,29 @@ const loadContent = async (): Promise<LoadedContent> => {
 		throw new Error("Missing required page content: now");
 	}
 
+	const aboutBody = aboutEntry.body
+		.split(/\n{2,}/)
+		.map((paragraph: string) => toInlineText(paragraph))
+		.filter(Boolean);
+	if (aboutBody.length === 0) {
+		throw new Error("About page must include body content");
+	}
+
 	const aboutPage: AboutPage = {
 		title: aboutEntry.data.title,
 		deck: aboutEntry.data.deck,
-		body: aboutEntry.body
-			.split(/\n{2,}/)
-			.map((paragraph: string) => toInlineText(paragraph))
-			.filter(Boolean),
+		body: aboutBody,
 		facts: aboutEntry.data.facts ?? [],
 	};
+
+	if (!nowEntry.data.updatedAt) {
+		throw new Error("Now page must define updatedAt metadata");
+	}
 
 	const nowPage: NowPage = {
 		title: nowEntry.data.title,
 		deck: nowEntry.data.deck,
-		updated: nowEntry.data.updatedAt?.toISOString() ?? new Date().toISOString(),
+		updated: nowEntry.data.updatedAt.toISOString(),
 		location: nowEntry.data.location ?? "",
 		working: nowEntry.data.working ?? "",
 		learning: nowEntry.data.learning ?? "",
