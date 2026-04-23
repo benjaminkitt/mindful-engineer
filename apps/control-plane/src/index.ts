@@ -91,6 +91,29 @@ const normalizePayloadForType = (
 const previewExpiryIso = (minutes = 30) =>
 	new Date(Date.now() + minutes * 60_000).toISOString();
 
+class PublishBookkeepingError extends Error {
+	readonly result: {
+		draftId: string;
+		slug: string;
+		contentPath: string;
+		commitSha: string;
+	};
+
+	constructor(
+		message: string,
+		result: {
+			draftId: string;
+			slug: string;
+			contentPath: string;
+			commitSha: string;
+		},
+	) {
+		super(message);
+		this.name = "PublishBookkeepingError";
+		this.result = result;
+	}
+}
+
 const saveDraftAction = async (
 	env: Env,
 	options: {
@@ -216,62 +239,70 @@ const publishAction = async (
 	);
 	const publishMessage = `publish(${options.entryType}): ${artifact.slug}`;
 	const github = await publishCanonicalArtifact(env, artifact, publishMessage);
-
-	if (options.draftId) {
-		await updateDraft(env, {
-			id: draftId,
-			state: "published",
-			payload: options.payload,
-			previewHtml: renderPreviewHtml(options.entryType, options.payload),
-			updatedAt: now,
-			publishedAt: now,
-			publishedSlug: artifact.slug,
-			publishedPath: github.contentPath,
-			publishedSha: github.commitSha,
-		});
-	} else {
-		await createDraft(env, {
-			id: draftId,
-			entryType: options.entryType,
-			flowId: scaffold.flowId,
-			state: "published",
-			payload: options.payload,
-			previewHtml: renderPreviewHtml(options.entryType, options.payload),
-			timestamp: now,
-		});
-
-		await updateDraft(env, {
-			id: draftId,
-			state: "published",
-			payload: options.payload,
-			updatedAt: now,
-			publishedAt: now,
-			publishedSlug: artifact.slug,
-			publishedPath: github.contentPath,
-			publishedSha: github.commitSha,
-		});
-	}
-
-	await createPublishEvent(env, {
-		id: scaffold.newPublishEventId(),
-		draftId,
-		entryType: options.entryType,
-		flowId: scaffold.flowId,
-		slug: artifact.slug,
-		contentPath: github.contentPath,
-		githubCommitSha: github.commitSha,
-		githubCommitUrl: github.commitUrl,
-		repository: getRepositoryLabel(env),
-		createdAt: now,
-		status: "published",
-	});
-
-	return {
+	const result = {
 		draftId,
 		slug: artifact.slug,
 		contentPath: github.contentPath,
 		commitSha: github.commitSha,
 	};
+
+	try {
+		if (options.draftId) {
+			await updateDraft(env, {
+				id: draftId,
+				state: "published",
+				payload: options.payload,
+				previewHtml: renderPreviewHtml(options.entryType, options.payload),
+				updatedAt: now,
+				publishedAt: now,
+				publishedSlug: artifact.slug,
+				publishedPath: github.contentPath,
+				publishedSha: github.commitSha,
+			});
+		} else {
+			await createDraft(env, {
+				id: draftId,
+				entryType: options.entryType,
+				flowId: scaffold.flowId,
+				state: "published",
+				payload: options.payload,
+				previewHtml: renderPreviewHtml(options.entryType, options.payload),
+				timestamp: now,
+			});
+
+			await updateDraft(env, {
+				id: draftId,
+				state: "published",
+				payload: options.payload,
+				updatedAt: now,
+				publishedAt: now,
+				publishedSlug: artifact.slug,
+				publishedPath: github.contentPath,
+				publishedSha: github.commitSha,
+			});
+		}
+
+		await createPublishEvent(env, {
+			id: scaffold.newPublishEventId(),
+			draftId,
+			entryType: options.entryType,
+			flowId: scaffold.flowId,
+			slug: artifact.slug,
+			contentPath: github.contentPath,
+			githubCommitSha: github.commitSha,
+			githubCommitUrl: github.commitUrl,
+			repository: getRepositoryLabel(env),
+			createdAt: now,
+			status: "published",
+		});
+		return result;
+	} catch (error) {
+		const detail = error instanceof Error ? error.message : String(error);
+		throw new PublishBookkeepingError(
+			`Published canonical content, but failed to persist publish bookkeeping: ${detail}`,
+			result,
+		);
+	}
 };
 
 const handleEntryAction = async (request: Request, env: Env) => {
@@ -308,15 +339,24 @@ const handleEntryAction = async (request: Request, env: Env) => {
 		);
 	}
 
-	const result = await publishAction(env, {
-		flowId,
-		entryType,
-		payload,
-		draftId,
-	});
-	return redirect(
-		`/admin/review?published=${encodeURIComponent(result.slug)}&flowId=${encodeURIComponent(flowId)}`,
-	);
+	try {
+		const result = await publishAction(env, {
+			flowId,
+			entryType,
+			payload,
+			draftId,
+		});
+		return redirect(
+			`/admin/review?published=${encodeURIComponent(result.slug)}&flowId=${encodeURIComponent(flowId)}`,
+		);
+	} catch (error) {
+		if (error instanceof PublishBookkeepingError) {
+			return redirect(
+				`/admin/review?published=${encodeURIComponent(error.result.slug)}&flowId=${encodeURIComponent(flowId)}&error=${encodeURIComponent(error.message)}`,
+			);
+		}
+		throw error;
+	}
 };
 
 const parseUrl = (request: Request) => new URL(request.url);
@@ -342,16 +382,20 @@ const routeAdminGet = async (request: Request, env: Env) => {
 	}
 
 	if (path === "/admin/new") {
-		const entryType = getEntryType(url.searchParams.get("type"));
+		const requestedType = url.searchParams.get("type");
 		const draftId = url.searchParams.get("draftId") ?? undefined;
 		const providedFlow = url.searchParams.get("flowId") ?? undefined;
 		const draft = await findDraft(env, draftId);
 		const scaffold = createFlowScaffold(providedFlow ?? draft?.flowId);
+		const entryType =
+			draft && !requestedType ? draft.entryType : getEntryType(requestedType);
 		if (draft) {
 			if (providedFlow) {
 				scaffold.assertSameFlow(draft.flowId, "new page draft hydration");
 			}
-			scaffold.assertEntryType(draft.entryType, entryType);
+			if (requestedType) {
+				scaffold.assertEntryType(draft.entryType, entryType);
+			}
 		}
 
 		return htmlResponse(
@@ -381,6 +425,7 @@ const routeAdminGet = async (request: Request, env: Env) => {
 			renderReviewPage(reviewDrafts, events, {
 				notice,
 				publishedSlug: published,
+				error: url.searchParams.get("error") ?? undefined,
 			}),
 		);
 	}

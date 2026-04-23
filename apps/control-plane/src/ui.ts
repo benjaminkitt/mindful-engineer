@@ -364,7 +364,7 @@ export const renderDraftsPage = (drafts: DraftRecord[], notice?: string) => {
 export const renderReviewPage = (
 	draftsInReview: DraftRecord[],
 	events: PublishEventRecord[],
-	options?: { notice?: string; publishedSlug?: string },
+	options?: { notice?: string; publishedSlug?: string; error?: string },
 ) => {
 	const draftRows = draftsInReview
 		.map((draft) => {
@@ -390,6 +390,7 @@ export const renderReviewPage = (
 		title: "Review",
 		path: "/admin/review",
 		notice: publishedNotice,
+		error: options?.error,
 		body: `<section class="card"><h2>Draft and preview queue</h2><table><thead><tr><th>State</th><th>Type</th><th>Flow</th><th>Updated</th><th></th></tr></thead><tbody>${draftRows || '<tr><td colspan="5">No draft/preview entries pending review.</td></tr>'}</tbody></table></section><section class="card"><h2>Canonical publish events</h2><table><thead><tr><th>Type</th><th>Slug</th><th>Canonical path</th><th>Commit</th><th>Published</th></tr></thead><tbody>${eventRows || '<tr><td colspan="5">No publish events yet.</td></tr>'}</tbody></table></section>`,
 	});
 };
