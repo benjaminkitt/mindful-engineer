@@ -104,7 +104,8 @@ interface PlatformConfig {
 	hostname: string;
 }
 
-const MINDFUL_ENGINEER_ORIGIN = "https://mindful.engineer";
+const MINDFUL_ENGINEER_PROTOCOL = "https:";
+const MINDFUL_ENGINEER_HOSTNAME = "mindful.engineer";
 
 const PLATFORM_CONFIG: Record<SyndicationPlatform, PlatformConfig> = {
 	mastodon: {
@@ -239,14 +240,24 @@ const requirePublishedCanonical = (canonical: CanonicalEntryReference) => {
 	nonEmpty(canonical.title, "canonical title");
 	nonEmpty(canonical.summary, "canonical summary");
 	nonEmpty(canonical.publishedAt, "canonical publishedAt");
-	nonEmpty(canonical.canonicalUrl, "canonical URL");
 
+	const canonicalUrl = nonEmpty(canonical.canonicalUrl, "canonical URL");
 	const publishedAt = new Date(canonical.publishedAt);
 	if (Number.isNaN(publishedAt.getTime())) {
 		throw new Error("Canonical publishedAt must be an ISO-compatible date");
 	}
 
-	if (!canonical.canonicalUrl.startsWith(MINDFUL_ENGINEER_ORIGIN)) {
+	let parsedCanonicalUrl: URL;
+	try {
+		parsedCanonicalUrl = new URL(canonicalUrl);
+	} catch {
+		throw new Error("Canonical URL must be a valid URL");
+	}
+
+	if (
+		parsedCanonicalUrl.protocol !== MINDFUL_ENGINEER_PROTOCOL ||
+		parsedCanonicalUrl.hostname !== MINDFUL_ENGINEER_HOSTNAME
+	) {
 		throw new Error(
 			`Canonical URL must be on mindful.engineer (${canonical.canonicalUrl})`,
 		);
@@ -486,6 +497,13 @@ export const sendReviewedVariant = (
 	if (!text) {
 		throw new Error(
 			`Variant ${platform} cannot be sent without prepared content`,
+		);
+	}
+
+	const preview = buildTextFirstPreview(state.canonical, platform, text);
+	if (preview.overLimit) {
+		throw new Error(
+			`Variant ${platform} exceeds the ${preview.characterLimit}-character limit`,
 		);
 	}
 
