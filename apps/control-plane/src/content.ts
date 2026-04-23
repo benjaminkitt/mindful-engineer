@@ -36,10 +36,7 @@ const summarize = (value: string, length = 140) => {
 	return `${value.slice(0, length - 1).replace(/\s+$/, "")}…`;
 };
 
-const frontmatterValue = (value: string) =>
-	value.includes(":") || value.includes("#") || value.includes("\n")
-		? JSON.stringify(value)
-		: value;
+const frontmatterValue = (value: string) => JSON.stringify(value);
 
 const mdxHeader = (fields: Record<string, string | boolean>) => {
 	const lines = Object.entries(fields).map(([key, value]) => {

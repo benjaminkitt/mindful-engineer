@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import test from "node:test";
 
-import { hasAccessJwt, verifyAccessJwt } from "./auth";
+import { getAccessJwks, hasAccessJwt, verifyAccessJwt } from "./auth";
 import type { Env } from "./types";
 
 const baseEnv = {
@@ -35,4 +35,17 @@ test("verifyAccessJwt returns false when verification fails", async () => {
 	});
 
 	assert.equal(await verifyAccessJwt(request, baseEnv), false);
+});
+
+test("getAccessJwks memoizes the remote JWKS loader per team domain", () => {
+	const teamDomain = "https://team.example.cloudflareaccess.com";
+	const sameDomainWithSlash = "https://team.example.cloudflareaccess.com/";
+	const otherDomain = "https://other.example.cloudflareaccess.com";
+
+	const first = getAccessJwks(teamDomain);
+	const second = getAccessJwks(sameDomainWithSlash);
+	const third = getAccessJwks(otherDomain);
+
+	assert.equal(first, second);
+	assert.notEqual(first, third);
 });
