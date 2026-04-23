@@ -186,12 +186,12 @@ const cloneState = (state: SyndicationEntryState): SyndicationEntryState => {
 	return {
 		...state,
 		canonical: { ...state.canonical },
-		variants: {
-			mastodon: { ...state.variants.mastodon },
-			bluesky: { ...state.variants.bluesky },
-			linkedin: { ...state.variants.linkedin },
-			x: { ...state.variants.x },
-		},
+		variants: Object.fromEntries(
+			SYNDICATION_PLATFORMS.map((platform) => [
+				platform,
+				{ ...state.variants[platform] },
+			]),
+		) as SyndicationEntryState["variants"],
 	};
 };
 
@@ -251,12 +251,12 @@ export const scaffoldReviewedSyndicationState = (
 		}
 	}
 
-	const variants: Record<SyndicationPlatform, SyndicationVariantState> = {
-		mastodon: createInitialVariantState("mastodon"),
-		bluesky: createInitialVariantState("bluesky"),
-		linkedin: createInitialVariantState("linkedin"),
-		x: createInitialVariantState("x"),
-	};
+	const variants = Object.fromEntries(
+		SYNDICATION_PLATFORMS.map((platform) => [
+			platform,
+			createInitialVariantState(platform),
+		]),
+	) as SyndicationEntryState["variants"];
 
 	for (const platform of SYNDICATION_PLATFORMS) {
 		if (!uniquePlatforms.includes(platform)) {

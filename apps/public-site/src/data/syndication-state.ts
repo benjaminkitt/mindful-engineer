@@ -13,18 +13,14 @@ import {
 	markManualVariantPosted,
 	prepareVariant,
 	publishCanonicalAndPrepareReviewedSyndication,
+	SYNDICATION_PLATFORMS,
 	type SyndicationEntryState,
 	type SyndicationPlatform,
 	sendReviewedVariant,
 	skipVariant,
 } from "../syndication/workflow";
 
-const defaultPlatforms: SyndicationPlatform[] = [
-	"mastodon",
-	"bluesky",
-	"linkedin",
-	"x",
-];
+const defaultPlatforms: SyndicationPlatform[] = [...SYNDICATION_PLATFORMS];
 
 const canonicalEntries: CanonicalEntryReference[] = [
 	{
@@ -78,7 +74,7 @@ const approvedAndSent = (canonical: CanonicalEntryReference) => {
 		defaultPlatforms,
 	).state;
 
-	for (const platform of ["mastodon", "bluesky", "linkedin", "x"] as const) {
+	for (const platform of SYNDICATION_PLATFORMS) {
 		state = approveVariant(state, platform);
 	}
 

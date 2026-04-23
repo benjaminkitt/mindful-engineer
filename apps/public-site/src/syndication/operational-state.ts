@@ -30,12 +30,12 @@ export interface SyndicationOperationalSnapshot {
 const cloneState = (state: SyndicationEntryState): SyndicationEntryState => ({
 	...state,
 	canonical: { ...state.canonical },
-	variants: {
-		mastodon: { ...state.variants.mastodon },
-		bluesky: { ...state.variants.bluesky },
-		linkedin: { ...state.variants.linkedin },
-		x: { ...state.variants.x },
-	},
+	variants: Object.fromEntries(
+		SYNDICATION_PLATFORMS.map((platform) => [
+			platform,
+			{ ...state.variants[platform] },
+		]),
+	) as SyndicationEntryState["variants"],
 });
 
 export class InMemorySyndicationOperationalStore {
