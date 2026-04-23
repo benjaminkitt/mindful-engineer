@@ -559,9 +559,9 @@ export const buildAssistedManualOutput = (
 	}
 
 	const variant = state.variants[platform];
-	if (variant.status !== "prepared" && variant.status !== "approved") {
+	if (variant.status !== "approved") {
 		throw new Error(
-			`Variant ${platform} must be prepared before generating manual output`,
+			`Variant ${platform} must be approved before generating manual output`,
 		);
 	}
 
