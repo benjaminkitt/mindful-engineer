@@ -1,5 +1,9 @@
 ---
-import type { ArticleBlock } from "../data/site";
+type ArticleBlock =
+  | { type: "paragraph"; text: string }
+  | { type: "heading"; text: string }
+  | { type: "quote"; text: string }
+  | { type: "list"; items: string[] };
 
 interface Props {
   blocks: ArticleBlock[];
@@ -22,10 +26,9 @@ const { blocks } = Astro.props;
 
   return (
     <ol>
-      {block.items.map((item) => (
+      {block.items.map((item: string) => (
         <li>{item}</li>
       ))}
     </ol>
   );
 })}
-

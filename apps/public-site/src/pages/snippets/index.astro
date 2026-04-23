@@ -1,0 +1,33 @@
+---
+import InstrumentFigure from "../../components/InstrumentFigure.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatDisplayDateShort, getEntryPath, getSnippets } from "../../data/site";
+
+const snippets = await getSnippets();
+---
+<BaseLayout title="Snippets | The Mindful Engineer" description="Code-centered snippets from The Mindful Engineer." path="/snippets">
+  <div class="container">
+    <section class="hero" style="padding-top: var(--s-5); padding-bottom: var(--s-6);">
+      <InstrumentFigure variant="fragments" />
+      <div class="hero-kicker"><span>code / snippets</span></div>
+      <h1 class="hero-title" style="font-size: clamp(32px, 4.5vw, 52px);">Snippets</h1>
+      <p class="hero-sub">Compact code-first entries that are useful enough to keep.</p>
+    </section>
+
+    <div class="notes-grid">
+      {snippets.map((snippet) => (
+        <a class="note-row" href={getEntryPath(snippet)}>
+          <div class="date">
+            {formatDisplayDateShort(snippet.date)}<br />
+            <span style="color: var(--c-ink-mute);">{new Date(snippet.date).getFullYear()}</span>
+            <br /><span class="micro" style="letter-spacing: 0.12em; margin-top: 4px; display: inline-block;">{snippet.language}</span>
+          </div>
+          <div class="note-text">
+            <div class="link-title">{snippet.title}</div>
+            <div class="link-summary">{snippet.summary}</div>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

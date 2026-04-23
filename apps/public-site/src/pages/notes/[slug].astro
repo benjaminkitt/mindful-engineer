@@ -1,8 +1,9 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { formatDisplayDateTime, getEntryPath, notes, type Note } from "../../data/site";
+import { formatDisplayDateTime, getEntryPath, getNotes, type Note } from "../../data/site";
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+  const notes = await getNotes();
   return notes.map((note) => ({
     params: { slug: note.slug },
     props: { note },

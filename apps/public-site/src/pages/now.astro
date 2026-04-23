@@ -1,15 +1,17 @@
 ---
 import InstrumentFigure from "../components/InstrumentFigure.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { formatDisplayDate, nowPage } from "../data/site";
+import { formatDisplayDate, getNowPage } from "../data/site";
+
+const nowPage = await getNowPage();
 ---
-<BaseLayout title="Now | The Mindful Engineer" description="Current snapshot for The Mindful Engineer." path="/now">
+<BaseLayout title="Now | The Mindful Engineer" description={nowPage.deck} path="/now">
   <div class="container">
     <section class="hero" style="padding-top: var(--s-5); padding-bottom: var(--s-6);">
       <InstrumentFigure variant="horologium" />
       <div class="hero-kicker"><span>/now / updated {formatDisplayDate(nowPage.updated)}</span></div>
-      <h1 class="hero-title" style="font-size: clamp(32px, 4.5vw, 52px);">What I'm doing now</h1>
-      <p class="hero-sub">A now page in the Derek Sivers tradition. A snapshot, not a statement.</p>
+      <h1 class="hero-title" style="font-size: clamp(32px, 4.5vw, 52px);">{nowPage.title}</h1>
+      <p class="hero-sub">{nowPage.deck}</p>
     </section>
 
     <div class="now-grid">

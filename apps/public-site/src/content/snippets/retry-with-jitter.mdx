@@ -1,0 +1,20 @@
+---
+type: snippet
+slug: retry-with-jitter
+title: Retry with jitter, honestly
+publishedAt: 2026-04-07
+language: python
+summary: Exponential backoff, full jitter, and no pretend sophistication.
+code: |
+  def retry(fn, attempts=5, base=0.25):
+      for index in range(attempts):
+          try:
+              return fn()
+          except Retryable:
+              if index == attempts - 1:
+                  raise
+              sleep(base * (2 ** index) + random() * base)
+published: true
+---
+
+This is the version I actually ship. Backoff, jitter, and one place to stop lying to yourself about how many retries you need.

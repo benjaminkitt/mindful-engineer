@@ -1,7 +1,9 @@
 ---
 import InstrumentFigure from "../../components/InstrumentFigure.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { formatDisplayDateShort, getEntryPath, links } from "../../data/site";
+import { formatDisplayDateShort, getEntryPath, getLinks } from "../../data/site";
+
+const links = await getLinks();
 ---
 <BaseLayout title="Links | The Mindful Engineer" description="Annotated links from The Mindful Engineer." path="/links">
   <div class="container">
