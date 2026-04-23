@@ -524,7 +524,7 @@ export const sendReviewedVariant = (
 		);
 	}
 
-	const preview = buildTextFirstPreview(state.canonical, platform, text);
+	const preview = buildPreviewFromText(platform, text);
 	if (preview.overLimit) {
 		throw new Error(
 			`Variant ${platform} exceeds the ${preview.characterLimit}-character limit`,
