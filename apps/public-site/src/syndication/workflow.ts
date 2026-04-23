@@ -145,6 +145,25 @@ const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim();
 
 const nowIso = () => new Date().toISOString();
 
+const buildPreviewFromText = (
+	platform: SyndicationPlatform,
+	text: string,
+): TextFirstPreview => {
+	const normalizedText = normalizeText(text);
+	const characterLimit = PLATFORM_CONFIG[platform].characterLimit;
+	const characterCount = normalizedText.length;
+
+	return {
+		text: normalizedText,
+		characterCount,
+		characterLimit,
+		overLimit:
+			typeof characterLimit === "number"
+				? characterCount > characterLimit
+				: false,
+	};
+};
+
 const nonEmpty = (value: string, field: string) => {
 	const normalized = value.trim();
 	if (!normalized) {
@@ -370,6 +389,8 @@ export const prepareVariant = (
 		...current,
 		status: "prepared",
 		preparedText: preview.text,
+		approvedText: undefined,
+		approvedAt: undefined,
 		preview,
 		errorMessage: undefined,
 		lastFlowId: REVIEWED_SYNDICATION_FLOW_IDS.prepareVariant,
@@ -395,11 +416,14 @@ export const approveVariant = (
 		throw new Error(`Approved text cannot be empty for ${platform}`);
 	}
 
+	const preview = buildPreviewFromText(platform, approvedText);
+
 	return updateVariant(state, platform, (current) => ({
 		...current,
 		status: "approved",
 		approvedText,
 		approvedAt: nowIso(),
+		preview,
 		lastFlowId: REVIEWED_SYNDICATION_FLOW_IDS.approveVariant,
 	}));
 };
