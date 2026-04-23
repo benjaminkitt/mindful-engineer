@@ -2,6 +2,8 @@ import type { EntryType } from "./types";
 
 const FLOW_ID_PATTERN = /^flow_[a-z0-9]+_[a-z0-9]{6}$/;
 
+export const isFlowId = (value: string) => FLOW_ID_PATTERN.test(value);
+
 export class FlowGuardError extends Error {
 	constructor(message: string) {
 		super(message);
@@ -19,7 +21,7 @@ export const generateFlowId = (now = Date.now()) =>
 	`flow_${now.toString(36)}_${randomToken(6)}`;
 
 export const assertFlowId = (value: string) => {
-	if (!FLOW_ID_PATTERN.test(value)) {
+	if (!isFlowId(value)) {
 		throw new FlowGuardError(
 			`Invalid flowId "${value}". Expected pattern: ${FLOW_ID_PATTERN.source}`,
 		);

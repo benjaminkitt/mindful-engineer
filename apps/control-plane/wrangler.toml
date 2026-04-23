@@ -5,6 +5,8 @@ workers_dev = true
 
 [vars]
 ACCESS_PROTECTION_MODE = "cloudflare-access"
+ACCESS_TEAM_DOMAIN = "https://replace-with-your-team.cloudflareaccess.com"
+ACCESS_AUD = "replace-with-your-access-audience"
 GITHUB_API_BASE_URL = "https://api.github.com"
 GITHUB_CONTENT_ROOT = "apps/public-site/src/content"
 GITHUB_BRANCH = "main"

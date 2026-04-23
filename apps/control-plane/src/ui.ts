@@ -416,7 +416,7 @@ export const renderSettingsPage = (summary: SettingsSummary) => {
 	return layout({
 		title: "Settings",
 		path: "/admin/settings",
-		body: `<section class="card"><h2>MVP protection and bindings</h2><table><tbody><tr><th>Access mode</th><td>${escapeHtml(summary.accessMode)}</td></tr><tr><th>Access header present</th><td>${bool(summary.accessHeaderPresent)}</td></tr><tr><th>D1 binding</th><td>${bool(summary.hasD1)}</td></tr><tr><th>GitHub token</th><td>${bool(summary.hasGithubToken)}</td></tr><tr><th>GitHub owner</th><td>${bool(summary.hasGithubOwner)}</td></tr><tr><th>GitHub repo</th><td>${bool(summary.hasGithubRepo)}</td></tr></tbody></table><p>Cloudflare Access should protect this Worker at the edge. This app still checks for Access identity headers as an MVP guardrail.</p></section>`,
+		body: `<section class="card"><h2>MVP protection and bindings</h2><table><tbody><tr><th>Access mode</th><td>${escapeHtml(summary.accessMode)}</td></tr><tr><th>Access JWT present</th><td>${bool(summary.accessHeaderPresent)}</td></tr><tr><th>D1 binding</th><td>${bool(summary.hasD1)}</td></tr><tr><th>GitHub token</th><td>${bool(summary.hasGithubToken)}</td></tr><tr><th>GitHub owner</th><td>${bool(summary.hasGithubOwner)}</td></tr><tr><th>GitHub repo</th><td>${bool(summary.hasGithubRepo)}</td></tr></tbody></table><p>Cloudflare Access should protect this Worker at the edge, and this app verifies the Access JWT against the configured team domain and audience before allowing editorial workflows.</p></section>`,
 	});
 };
 
@@ -425,8 +425,8 @@ export const renderUnauthorizedPage = () =>
 		title: "Unauthorized",
 		path: "/admin",
 		error:
-			"Access denied. This control plane expects Cloudflare Access headers before editorial workflows are available.",
-		body: `<section class="card"><h2>Cloudflare Access required</h2><p>For MVP, this route must be behind a Cloudflare Access policy. Once Access is configured, retry from an authorized session.</p></section>`,
+			"Access denied. This control plane expects a valid Cloudflare Access JWT before editorial workflows are available.",
+		body: `<section class="card"><h2>Cloudflare Access required</h2><p>For MVP, this route must be behind a Cloudflare Access policy and the Worker must be configured to verify the Access JWT. Once Access is configured, retry from an authorized session.</p></section>`,
 	});
 
 export const renderNotFoundPage = () =>

@@ -1,3 +1,4 @@
+import { hasAccessJwt, verifyAccessJwt } from "./auth";
 import { buildCanonicalArtifact, renderPreviewHtml } from "./content";
 import {
 	createDraft,
@@ -10,7 +11,7 @@ import {
 	listPublishEvents,
 	updateDraft,
 } from "./db";
-import { createFlowScaffold } from "./flow";
+import { createFlowScaffold, isFlowId } from "./flow";
 import { getRepositoryLabel, publishCanonicalArtifact } from "./github";
 import type { EntryPayload, EntryType, Env } from "./types";
 import {
@@ -55,19 +56,13 @@ const redirect = (location: string, status = 303) =>
 		},
 	});
 
-const getAccessEmailHeader = (request: Request) =>
-	request.headers.get("CF-Access-Authenticated-User-Email")?.trim();
-
-const hasAccessJwt = (request: Request) =>
-	Boolean(request.headers.get("CF-Access-Jwt-Assertion")?.trim());
-
-const requireAccess = (request: Request, env: Env) => {
+const requireAccess = async (request: Request, env: Env) => {
 	const mode = env.ACCESS_PROTECTION_MODE ?? "cloudflare-access";
 	if (mode === "off") {
 		return true;
 	}
 
-	return Boolean(getAccessEmailHeader(request)) || hasAccessJwt(request);
+	return verifyAccessJwt(request, env);
 };
 
 const currentIso = () => new Date().toISOString();
@@ -149,6 +144,7 @@ const createPreviewAction = async (
 ) => {
 	const scaffold = createFlowScaffold(options.flowId);
 	const now = currentIso();
+	await deleteExpiredPreviewSessions(env, now);
 	const previewHtml = renderPreviewHtml(options.entryType, options.payload);
 	const draftId = options.draftId ?? scaffold.newDraftId();
 
@@ -419,8 +415,7 @@ const routeAdminGet = async (request: Request, env: Env) => {
 		return htmlResponse(
 			renderSettingsPage({
 				accessMode: env.ACCESS_PROTECTION_MODE ?? "cloudflare-access",
-				accessHeaderPresent:
-					Boolean(getAccessEmailHeader(request)) || hasAccessJwt(request),
+				accessHeaderPresent: hasAccessJwt(request),
 				hasGithubToken: Boolean(env.GITHUB_TOKEN?.trim()),
 				hasGithubOwner: Boolean(env.GITHUB_OWNER?.trim()),
 				hasGithubRepo: Boolean(env.GITHUB_REPO?.trim()),
@@ -489,13 +484,11 @@ export default {
 			);
 		}
 
-		if (!requireAccess(request, env)) {
+		if (!(await requireAccess(request, env))) {
 			return htmlResponse(renderUnauthorizedPage(), { status: 401 });
 		}
 
 		try {
-			await deleteExpiredPreviewSessions(env, currentIso());
-
 			if (
 				request.method === "POST" &&
 				url.pathname === "/admin/actions/entry"
@@ -519,8 +512,11 @@ export default {
 					: "Unexpected control-plane error";
 
 			if (request.method === "GET" && url.pathname.startsWith("/admin")) {
+				const providedFlow = url.searchParams.get("flowId");
 				const fallbackFlow =
-					url.searchParams.get("flowId") ?? createFlowScaffold().flowId;
+					providedFlow && isFlowId(providedFlow)
+						? providedFlow
+						: createFlowScaffold().flowId;
 				return htmlResponse(
 					renderNewEntryPage({
 						flowId: fallbackFlow,

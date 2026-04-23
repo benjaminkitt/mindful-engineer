@@ -15,6 +15,8 @@ export interface D1PreparedStatement {
 export interface Env {
 	DB: D1DatabaseBinding;
 	ACCESS_PROTECTION_MODE?: "cloudflare-access" | "off";
+	ACCESS_AUD?: string;
+	ACCESS_TEAM_DOMAIN?: string;
 	GITHUB_TOKEN?: string;
 	GITHUB_OWNER?: string;
 	GITHUB_REPO?: string;

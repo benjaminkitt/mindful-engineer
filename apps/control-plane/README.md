@@ -5,7 +5,7 @@ This Worker app is the protected editorial control plane for remote note/link ca
 ## What it does
 
 - Serves a separate admin app route set (`/admin/new`, `/admin/drafts`, `/admin/review`, `/admin/settings`)
-- Enforces Cloudflare Access header checks for MVP protection
+- Verifies Cloudflare Access JWTs for MVP protection
 - Supports mobile-friendly note and link creation with save-draft, preview, and publish actions
 - Stores workflow state and publish bookkeeping in D1
 - Publishes canonical content into the repository via GitHub API (`/contents` endpoint)
@@ -32,10 +32,12 @@ wrangler d1 migrations apply mindful-engineer-control-plane
 
 ### Cloudflare Access
 
-Set `ACCESS_PROTECTION_MODE=cloudflare-access` (default in `wrangler.toml`) and place the Worker behind a Cloudflare Access policy. The app also checks for:
+Set `ACCESS_PROTECTION_MODE=cloudflare-access` (default in `wrangler.toml`) and place the Worker behind a Cloudflare Access policy. The app verifies the `CF-Access-Jwt-Assertion` header against Cloudflare Access signing keys from your team domain and requires a matching application audience.
 
-- `CF-Access-Authenticated-User-Email`, or
-- `CF-Access-Jwt-Assertion`
+Required environment variables:
+
+- `ACCESS_TEAM_DOMAIN` = `https://<your-team>.cloudflareaccess.com`
+- `ACCESS_AUD` = your Cloudflare Access application audience tag
 
 To ease local dev only, set `ACCESS_PROTECTION_MODE=off` in a local `.dev.vars` file.
 

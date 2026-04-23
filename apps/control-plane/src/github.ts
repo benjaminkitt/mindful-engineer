@@ -16,11 +16,10 @@ interface GithubCreateOrUpdateResponse {
 
 const toBase64Utf8 = (value: string) => {
 	const bytes = new TextEncoder().encode(value);
-	let binary = "";
-	for (const byte of bytes) {
-		binary += String.fromCharCode(byte);
-	}
-	return btoa(binary);
+	const binString = Array.from(bytes, (byte) => String.fromCharCode(byte)).join(
+		"",
+	);
+	return btoa(binString);
 };
 
 const required = (value: string | undefined, label: string) => {

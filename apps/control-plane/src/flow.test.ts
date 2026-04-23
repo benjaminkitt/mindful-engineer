@@ -1,7 +1,12 @@
 import { strict as assert } from "node:assert";
 import test from "node:test";
 
-import { assertFlowId, createFlowScaffold, FlowGuardError } from "./flow";
+import {
+	assertFlowId,
+	createFlowScaffold,
+	FlowGuardError,
+	isFlowId,
+} from "./flow";
 
 test("createFlowScaffold reuses provided flow id and enforces match", () => {
 	const scaffold = createFlowScaffold("flow_abc123_1a2b3c");
@@ -18,4 +23,9 @@ test("createFlowScaffold reuses provided flow id and enforces match", () => {
 test("assertFlowId rejects malformed flow ids", () => {
 	assert.throws(() => assertFlowId("invalid"), FlowGuardError);
 	assert.equal(assertFlowId("flow_kz9f_123abc"), "flow_kz9f_123abc");
+});
+
+test("isFlowId returns false for malformed flow ids", () => {
+	assert.equal(isFlowId("invalid"), false);
+	assert.equal(isFlowId("flow_kz9f_123abc"), true);
 });
