@@ -1,5 +1,6 @@
 import rss from "@astrojs/rss";
 import type { APIRoute } from "astro";
+import { htmlToPlainText, truncateFeedText } from "../../data/feed";
 import {
 	getCanonicalUrl,
 	getLinks,
@@ -24,7 +25,8 @@ type FeedEntry =
 			link: string;
 	  };
 
-const noteTitle = (note: Note) => note.body.slice(0, 80);
+const noteTitle = (note: Note) =>
+	truncateFeedText(htmlToPlainText(note.body), 80);
 
 export const GET: APIRoute = async (context) => {
 	const [notes, links] = await Promise.all([getNotes(), getLinks()]);

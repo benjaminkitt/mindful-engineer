@@ -1,15 +1,11 @@
 import rss from "@astrojs/rss";
 import type { APIRoute } from "astro";
+import {
+	buildExternalUrlCustomData,
+	htmlToPlainText,
+	truncateFeedText,
+} from "../data/feed";
 import { getCanonicalUrl, getRecentStream, siteMeta } from "../data/site";
-
-const stripHtml = (value: string) => value.replace(/<[^>]+>/g, "").trim();
-const xmlEscape = (value: string) =>
-	value
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&apos;");
 
 const getEntryDescription = (
 	entry: Awaited<ReturnType<typeof getRecentStream>>[number],
@@ -35,7 +31,7 @@ const getEntryTitle = (
 		case "snippet":
 			return entry.title;
 		case "note":
-			return stripHtml(entry.body).slice(0, 80);
+			return truncateFeedText(htmlToPlainText(entry.body), 80);
 	}
 };
 
@@ -54,7 +50,7 @@ export const GET: APIRoute = async (context) => {
 			link: getCanonicalUrl(entry),
 			customData:
 				entry.kind === "link"
-					? `<mindful:externalUrl xmlns:mindful="https://mindful.engineer/ns">${xmlEscape(entry.url)}</mindful:externalUrl>`
+					? buildExternalUrlCustomData(entry.url)
 					: undefined,
 		})),
 	});

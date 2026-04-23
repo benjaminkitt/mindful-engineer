@@ -62,6 +62,7 @@ export interface NowPage {
 
 interface LoadedContent {
 	articles: Article[];
+	articleSources: Map<string, CollectionEntry<"articles">>;
 	notes: Note[];
 	links: LinkEntry[];
 	snippets: Snippet[];
@@ -188,51 +189,9 @@ const inferTitleFromUrl = (url: string) => {
 	}
 };
 
-const decodeEntities = (value: string) =>
-	value
-		.replace(/&amp;/g, "&")
-		.replace(/&lt;/g, "<")
-		.replace(/&gt;/g, ">")
-		.replace(/&quot;/g, '"')
-		.replace(/&#39;/g, "'")
-		.trim();
-
-const fetchLinkTitle = async (url: string) => {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), 3000);
-
-	try {
-		const response = await fetch(url, {
-			headers: {
-				"user-agent": "mindful-engineer-feed-builder/1.0",
-			},
-			redirect: "follow",
-			signal: controller.signal,
-		});
-
-		if (!response.ok) {
-			return undefined;
-		}
-
-		const html = await response.text();
-		const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-		const title = match?.[1] ? decodeEntities(match[1]) : undefined;
-		return title && title.length > 0 ? title : undefined;
-	} catch {
-		return undefined;
-	} finally {
-		clearTimeout(timeout);
-	}
-};
-
-const resolveLinkTitle = async (title: string | undefined, url: string) => {
+const resolveLinkTitle = (title: string | undefined, url: string) => {
 	if (title && title.trim().length > 0) {
 		return { title: title.trim(), inferred: false };
-	}
-
-	const fetched = await fetchLinkTitle(url);
-	if (fetched) {
-		return { title: fetched, inferred: true };
 	}
 
 	return { title: inferTitleFromUrl(url), inferred: true };
@@ -265,12 +224,16 @@ const loadContent = async (): Promise<LoadedContent> => {
 		getCollection("pages", contentCollectionFilters.pages),
 	]);
 
+	const articleSources = new Map<string, CollectionEntry<"articles">>();
 	const articles: Article[] = sortByDateDesc(
-		articleEntries.map(
-			(entry: CollectionEntry<"articles">): Article => ({
+		articleEntries.map((entry: CollectionEntry<"articles">): Article => {
+			const slug = requireSlug(entry.slug, `article "${entry.id}"`);
+			articleSources.set(slug, entry);
+
+			return {
 				kind: "article" as const,
 				id: entry.id,
-				slug: requireSlug(entry.slug, `article "${entry.id}"`),
+				slug,
 				title: entry.data.title,
 				deck: entry.data.deck,
 				summary: entry.data.summary,
@@ -279,8 +242,8 @@ const loadContent = async (): Promise<LoadedContent> => {
 				readMinutes: entry.data.readMinutes,
 				tags: entry.data.tags,
 				featured: entry.data.featured,
-			}),
-		),
+			};
+		}),
 	);
 	assertUniqueSlugs(articles, "article");
 
@@ -298,28 +261,21 @@ const loadContent = async (): Promise<LoadedContent> => {
 	assertUniqueSlugs(notes, "note");
 
 	const links: LinkEntry[] = sortByDateDesc(
-		await Promise.all(
-			linkEntries.map(
-				async (entry: CollectionEntry<"links">): Promise<LinkEntry> => {
-					const resolved = await resolveLinkTitle(
-						entry.data.title,
-						entry.data.url,
-					);
-					return {
-						kind: "link" as const,
-						id: entry.id,
-						slug: requireSlug(entry.slug, `link "${entry.id}"`),
-						date: entry.data.publishedAt.toISOString(),
-						title: resolved.title,
-						titleInferred: resolved.inferred,
-						source: entry.data.source ?? inferSource(entry.data.url),
-						url: entry.data.url,
-						summary: entry.data.summary ?? toSummary(entry.body, 160),
-						body: toInlineText(entry.body),
-					};
-				},
-			),
-		),
+		linkEntries.map((entry: CollectionEntry<"links">): LinkEntry => {
+			const resolved = resolveLinkTitle(entry.data.title, entry.data.url);
+			return {
+				kind: "link" as const,
+				id: entry.id,
+				slug: requireSlug(entry.slug, `link "${entry.id}"`),
+				date: entry.data.publishedAt.toISOString(),
+				title: resolved.title,
+				titleInferred: resolved.inferred,
+				source: entry.data.source ?? inferSource(entry.data.url),
+				url: entry.data.url,
+				summary: entry.data.summary ?? toSummary(entry.body, 160),
+				body: toInlineText(entry.body),
+			};
+		}),
 	);
 	assertUniqueSlugs(links, "link");
 
@@ -390,6 +346,7 @@ const loadContent = async (): Promise<LoadedContent> => {
 
 	return {
 		articles,
+		articleSources,
 		notes,
 		links,
 		snippets,
@@ -485,20 +442,13 @@ export const getCanonicalUrl = (entry: StreamEntry) =>
 	new URL(getEntryPath(entry), siteMeta.siteUrl).toString();
 
 export const getArticleContentBySlug = async (slug: string) => {
-	const article = (await getArticles()).find(
-		(candidate) => candidate.slug === slug,
-	);
+	const { articles, articleSources } = await getLoadedContent();
+	const article = articles.find((candidate) => candidate.slug === slug);
 	if (!article) {
 		return undefined;
 	}
 
-	const entries = await getCollection(
-		"articles",
-		contentCollectionFilters.articles,
-	);
-	const sourceEntry = entries.find(
-		(entry: CollectionEntry<"articles">) => entry.slug === slug,
-	);
+	const sourceEntry = articleSources.get(slug);
 	if (!sourceEntry) {
 		return undefined;
 	}

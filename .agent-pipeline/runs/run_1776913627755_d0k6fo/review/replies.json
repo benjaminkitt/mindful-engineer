@@ -1,0 +1,9 @@
+{
+	"replies": [
+		{
+			"commentId": 4159148819,
+			"action": "addressed",
+			"body": "Implemented the review follow-ups with a small, targeted diff. In `apps/public-site/src/data/site.ts` I extended the existing cached content load to retain article source entries and updated `getArticleContentBySlug()` to reuse that cache instead of calling `getCollection()` again during article page generation. I also refined external link metadata handling by removing build-time remote title fetching and making explicit frontmatter titles authoritative, with deterministic URL-based title/source inference only as fallback. For feed generation, I replaced the manual regex HTML stripping and hand-written XML escaping in `src/pages/feed.xml.ts` with shared helpers in `src/data/feed.ts` that use standard HTML text extraction (`hast-util-from-html` + `hast-util-to-text`) and XML building (`fast-xml-parser`) so special characters are serialized safely. I also reused the note-title helper in `src/pages/notes/feed.xml.ts` for consistent feed text handling. Validation: `npm run check` and `npm run build` both pass in `apps/public-site`."
+		}
+	]
+}
