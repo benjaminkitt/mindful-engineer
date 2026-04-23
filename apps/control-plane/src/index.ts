@@ -345,10 +345,12 @@ const routeAdminGet = async (request: Request, env: Env) => {
 		const entryType = getEntryType(url.searchParams.get("type"));
 		const draftId = url.searchParams.get("draftId") ?? undefined;
 		const providedFlow = url.searchParams.get("flowId") ?? undefined;
-		const scaffold = createFlowScaffold(providedFlow);
 		const draft = await findDraft(env, draftId);
+		const scaffold = createFlowScaffold(providedFlow ?? draft?.flowId);
 		if (draft) {
-			scaffold.assertSameFlow(draft.flowId, "new page draft hydration");
+			if (providedFlow) {
+				scaffold.assertSameFlow(draft.flowId, "new page draft hydration");
+			}
 			scaffold.assertEntryType(draft.entryType, entryType);
 		}
 

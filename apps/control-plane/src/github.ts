@@ -89,12 +89,16 @@ export const publishCanonicalArtifact = async (
 	const coords = getRepoCoordinates(env);
 	const fullPath = `${coords.contentRoot}/${artifact.relativePath}`;
 	const existingSha = await getExistingSha(env, coords, fullPath);
+	if (existingSha) {
+		throw new Error(
+			`Canonical content already exists at ${fullPath}; refusing to overwrite existing entry`,
+		);
+	}
 
 	const body = {
 		message,
 		content: toBase64Utf8(artifact.mdx),
 		branch: coords.branch,
-		sha: existingSha,
 		committer: {
 			name: "Mindful Engineer Control Plane",
 			email: "noreply@mindful.engineer",

@@ -49,6 +49,37 @@ test("publishCanonicalArtifact sends UTF-8 content encoded as base64", async () 
 		assert.equal(calls.length, 2);
 		const payload = JSON.parse(String(calls[1]?.init?.body));
 		assert.equal(payload.content, "aGVsbG8g8J+Mig==");
+		assert.equal("sha" in payload, false);
+	} finally {
+		globalThis.fetch = originalFetch;
+	}
+});
+
+test("publishCanonicalArtifact refuses to overwrite existing canonical content", async () => {
+	const calls: Array<{ url: string; init?: RequestInit }> = [];
+	const originalFetch = globalThis.fetch;
+	globalThis.fetch = async (input, init) => {
+		calls.push({ url: String(input), init });
+		if (!init?.method) {
+			return new Response(JSON.stringify({ sha: "existing-sha" }), {
+				status: 200,
+				headers: { "content-type": "application/json" },
+			});
+		}
+		throw new Error("PUT should not be attempted when content already exists");
+	};
+
+	try {
+		await assert.rejects(
+			() =>
+				publishCanonicalArtifact(
+					env,
+					artifact,
+					"publish(note): ship-calm-systems",
+				),
+			/message: ship-calm-systems|Canonical content already exists/,
+		);
+		assert.equal(calls.length, 1);
 	} finally {
 		globalThis.fetch = originalFetch;
 	}
