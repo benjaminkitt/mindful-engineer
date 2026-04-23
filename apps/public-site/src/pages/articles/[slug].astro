@@ -1,4 +1,6 @@
 ---
+import ElsewhereLinks from "../../components/ElsewhereLinks.astro";
+import { getElsewhereDestinationsForPath } from "../../data/syndication-state";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import {
   type Article,
@@ -30,8 +32,10 @@ const ArticleContent = articleContent.Content;
 const articleIndex = articles.findIndex((candidate) => candidate.slug === article.slug);
 const newer = articleIndex > 0 ? articles[articleIndex - 1] : undefined;
 const older = articleIndex < articles.length - 1 ? articles[articleIndex + 1] : undefined;
+const canonicalPath = getEntryPath(article);
+const elsewhere = getElsewhereDestinationsForPath(canonicalPath);
 ---
-<BaseLayout title={`${article.title} | The Mindful Engineer`} description={article.summary} path={getEntryPath(article)}>
+<BaseLayout title={`${article.title} | The Mindful Engineer`} description={article.summary} path={canonicalPath}>
   <div class="container">
     <header class="essay-header">
       <div class="essay-kicker">
@@ -53,6 +57,8 @@ const older = articleIndex < articles.length - 1 ? articles[articleIndex + 1] : 
       <ArticleContent />
       <div class="essay-end">o o o</div>
     </article>
+
+    <ElsewhereLinks destinations={elsewhere} />
 
     <footer class="essay-footer">
       <div class="essay-nav">
