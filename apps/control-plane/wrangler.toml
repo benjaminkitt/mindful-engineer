@@ -1,0 +1,16 @@
+name = "mindful-engineer-control-plane"
+main = "src/index.ts"
+compatibility_date = "2026-04-22"
+workers_dev = true
+
+[vars]
+ACCESS_PROTECTION_MODE = "cloudflare-access"
+GITHUB_API_BASE_URL = "https://api.github.com"
+GITHUB_CONTENT_ROOT = "apps/public-site/src/content"
+GITHUB_BRANCH = "main"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mindful-engineer-control-plane"
+database_id = "replace-with-real-d1-database-id"
+migrations_dir = "migrations"

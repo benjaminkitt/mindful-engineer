@@ -1,0 +1,19 @@
+{
+	"name": "mindful-engineer-control-plane",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy",
+		"check": "tsc --noEmit",
+		"test": "tsx --test src/**/*.test.ts"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20260404.0",
+		"@types/node": "^22.15.3",
+		"tsx": "^4.20.6",
+		"typescript": "^5.8.3",
+		"wrangler": "^4.13.2"
+	}
+}
