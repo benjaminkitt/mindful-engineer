@@ -1,7 +1,12 @@
 import { strict as assert } from "node:assert";
 import test from "node:test";
 
-import { getAccessJwks, hasAccessJwt, verifyAccessJwt } from "./auth";
+import {
+	getAccessJwks,
+	hasAccessJwt,
+	normalizeTeamDomain,
+	verifyAccessJwt,
+} from "./auth";
 import type { Env } from "./types";
 
 const baseEnv = {
@@ -35,6 +40,17 @@ test("verifyAccessJwt returns false when verification fails", async () => {
 	});
 
 	assert.equal(await verifyAccessJwt(request, baseEnv), false);
+});
+
+test("normalizeTeamDomain treats trailing-slash variants equivalently", () => {
+	assert.equal(
+		normalizeTeamDomain("https://team.example.cloudflareaccess.com"),
+		"https://team.example.cloudflareaccess.com/",
+	);
+	assert.equal(
+		normalizeTeamDomain("https://team.example.cloudflareaccess.com/"),
+		"https://team.example.cloudflareaccess.com/",
+	);
 });
 
 test("getAccessJwks memoizes the remote JWKS loader per team domain", () => {
