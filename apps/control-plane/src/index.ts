@@ -480,9 +480,6 @@ const routeAdminGet = async (request: Request, env: Env) => {
 		const recovery = recoveryToken
 			? await getEntryRecoveryByToken(env, recoveryToken)
 			: undefined;
-		if (recoveryToken && recovery) {
-			await deleteEntryRecoveryByToken(env, recoveryToken);
-		}
 		const scaffold = createFlowScaffold(
 			providedFlow ?? recovery?.flowId ?? draft?.flowId,
 		);
@@ -501,6 +498,9 @@ const routeAdminGet = async (request: Request, env: Env) => {
 			if (!recovery && requestedType) {
 				scaffold.assertEntryType(draft.entryType, entryType);
 			}
+		}
+		if (recoveryToken && recovery) {
+			await deleteEntryRecoveryByToken(env, recoveryToken);
 		}
 
 		return htmlResponse(

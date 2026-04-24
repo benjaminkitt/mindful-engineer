@@ -271,6 +271,81 @@ test("GET /admin/new still rejects a mismatched explicit flowId for an existing 
 	assert.match(html, /name="flowId" value="flow_other_654321"/);
 });
 
+test("GET /admin/new keeps recovery token when draft hydration validation fails", async () => {
+	const recoveryToken = "recover_testtoken";
+	const draftId = "draft_flow_kz9f_123abc_seeded01";
+	const draftFlowId = "flow_kz9f_123abc";
+	const wrongFlowId = "flow_other_654321";
+	const db = createDb({
+		first: (query, values) => {
+			if (query.includes("FROM drafts") && values[0] === draftId) {
+				return {
+					id: draftId,
+					entry_type: "note",
+					flow_id: draftFlowId,
+					state: "draft",
+					payload_json: JSON.stringify({
+						type: "note",
+						body: "Hydrated draft body",
+					}),
+					preview_html: null,
+					created_at: "2026-04-23T00:00:00.000Z",
+					updated_at: "2026-04-23T00:00:00.000Z",
+					published_at: null,
+					published_slug: null,
+					published_path: null,
+					published_sha: null,
+				};
+			}
+			if (
+				query.includes("FROM entry_recoveries") &&
+				values[0] === recoveryToken
+			) {
+				return {
+					token: recoveryToken,
+					entry_type: "note",
+					flow_id: wrongFlowId,
+					draft_id: draftId,
+					payload_json: JSON.stringify({
+						type: "note",
+						body: "Recovered body",
+					}),
+					error: "Recovered error",
+					created_at: "2026-04-24T00:00:00.000Z",
+					expires_at: "3026-04-24T00:30:00.000Z",
+				};
+			}
+			return null;
+		},
+	});
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const response = await worker.fetch(
+		new Request(
+			`https://example.com/admin/new?draftId=${draftId}&flowId=${wrongFlowId}&recovery=${recoveryToken}`,
+		),
+		env,
+	);
+
+	assert.equal(response.status, 500);
+	const html = await response.text();
+	assert.match(
+		html,
+		/new page draft hydration: expected flow_other_654321, received flow_kz9f_123abc/,
+	);
+	assert.equal(
+		db.calls.some(
+			(call) =>
+				call.query.includes("DELETE FROM entry_recoveries WHERE token = ?") &&
+				call.values[0] === recoveryToken,
+		),
+		false,
+	);
+});
+
 test("GET /admin/new omits note draftId from the link tab", async () => {
 	const draftId = "draft_flow_kz9f_123abc_note01";
 	const draftFlowId = "flow_kz9f_123abc";
