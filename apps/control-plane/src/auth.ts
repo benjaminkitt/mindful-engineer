@@ -18,6 +18,14 @@ const required = (value: string | undefined, label: string) => {
 export const normalizeTeamDomain = (teamDomain: string) =>
 	teamDomain.endsWith("/") ? teamDomain : `${teamDomain}/`;
 
+export const getAccessJwtVerificationContext = (teamDomain: string) => {
+	const issuer = teamDomain.trim();
+	return {
+		issuer,
+		normalizedTeamDomain: normalizeTeamDomain(issuer),
+	};
+};
+
 const getAccessJwt = (request: Request) =>
 	request.headers.get(accessJwtHeader)?.trim() || undefined;
 
@@ -43,11 +51,12 @@ export const verifyAccessJwt = async (request: Request, env: Env) => {
 
 	try {
 		const teamDomain = required(env.ACCESS_TEAM_DOMAIN, "ACCESS_TEAM_DOMAIN");
-		const normalizedTeamDomain = normalizeTeamDomain(teamDomain);
+		const { issuer, normalizedTeamDomain } =
+			getAccessJwtVerificationContext(teamDomain);
 		const audience = required(env.ACCESS_AUD, "ACCESS_AUD");
 		const jwks = getAccessJwks(normalizedTeamDomain);
 		await jwtVerify(token, jwks, {
-			issuer: normalizedTeamDomain,
+			issuer,
 			audience,
 		});
 		return true;

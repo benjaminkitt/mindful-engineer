@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
 	getAccessJwks,
+	getAccessJwtVerificationContext,
 	hasAccessJwt,
 	normalizeTeamDomain,
 	verifyAccessJwt,
@@ -50,6 +51,28 @@ test("normalizeTeamDomain treats trailing-slash variants equivalently", () => {
 	assert.equal(
 		normalizeTeamDomain("https://team.example.cloudflareaccess.com/"),
 		"https://team.example.cloudflareaccess.com/",
+	);
+});
+
+test("verification preserves the configured issuer format while normalizing jwks lookup", () => {
+	assert.deepEqual(
+		getAccessJwtVerificationContext(
+			"https://team.example.cloudflareaccess.com",
+		),
+		{
+			issuer: "https://team.example.cloudflareaccess.com",
+			normalizedTeamDomain: "https://team.example.cloudflareaccess.com/",
+		},
+	);
+	assert.deepEqual(
+		getAccessJwtVerificationContext(
+			"https://team.example.cloudflareaccess.com/",
+		),
+		{
+			issuer: "https://team.example.cloudflareaccess.com/",
+			normalizedTeamDomain: "https://team.example.cloudflareaccess.com/",
+		},
+		"issuer should keep the configured trailing-slash form",
 	);
 });
 
