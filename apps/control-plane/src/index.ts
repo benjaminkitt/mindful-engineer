@@ -415,6 +415,9 @@ const routeAdminGet = async (request: Request, env: Env) => {
 		const draftId = url.searchParams.get("draftId") ?? undefined;
 		const providedFlow = url.searchParams.get("flowId") ?? undefined;
 		const draft = await findDraft(env, draftId);
+		if (draftId && !draft) {
+			throw new Error(`Draft not found: ${draftId}`);
+		}
 		const scaffold = createFlowScaffold(providedFlow ?? draft?.flowId);
 		const entryType =
 			draft && !requestedType ? draft.entryType : getEntryType(requestedType);
@@ -561,6 +564,9 @@ export default {
 		}
 
 		if (!(await requireAccess(request, env))) {
+			if (url.pathname.startsWith("/api/")) {
+				return jsonResponse({ error: "Unauthorized" }, { status: 401 });
+			}
 			return htmlResponse(renderUnauthorizedPage(), { status: 401 });
 		}
 

@@ -625,3 +625,40 @@ test("invalid flowId input redirects back to the admin editor with a fresh flowI
 		'Invalid flowId "invalid-flow". Expected pattern: ^flow_[a-z0-9]+_[a-z0-9]{6}$',
 	);
 });
+
+test("unauthorized API requests return JSON instead of HTML", async () => {
+	const db = createDb();
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "cloudflare-access",
+	} satisfies Env;
+
+	const response = await worker.fetch(
+		new Request("https://example.com/api/control-plane/health"),
+		env,
+	);
+
+	assert.equal(response.status, 401);
+	assert.match(response.headers.get("content-type") ?? "", /application\/json/);
+	assert.deepEqual(await response.json(), { error: "Unauthorized" });
+});
+
+test("GET /admin/new fails fast when draftId is missing", async () => {
+	const db = createDb();
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const missingDraftId = "draft_flow_kz9f_123abc_missing01";
+	const response = await worker.fetch(
+		new Request(`https://example.com/admin/new?draftId=${missingDraftId}`),
+		env,
+	);
+
+	assert.equal(response.status, 500);
+	const html = await response.text();
+	assert.match(html, new RegExp(`Draft not found: ${missingDraftId}`));
+	assert.match(html, /<section class="error">Draft not found:/);
+	assert.match(html, /name="flowId" value="flow_[a-z0-9]+_[a-z0-9]{6}"/);
+});
