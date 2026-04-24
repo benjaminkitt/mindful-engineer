@@ -103,6 +103,36 @@ test("buildCanonicalArtifact quotes numeric-looking and boolean-looking link str
 	assert.match(artifact.mdx, /url: "https:\/\/example\.com\/posts\/2026"/);
 });
 
+test("buildCanonicalArtifact preserves link commentary whitespace in published MDX", () => {
+	const commentary = "    indented line\ntrailing spaces preserved here.  ";
+	const artifact = buildCanonicalArtifact(
+		"link",
+		{
+			type: "link",
+			url: "https://example.com/posts/attention-is-a-practice",
+			commentary,
+		},
+		"2026-05-04T08:30:00.000Z",
+	);
+
+	assert.ok(artifact.mdx.endsWith(`${commentary}\n`));
+});
+
+test("buildCanonicalArtifact still treats whitespace-only link commentary as empty", () => {
+	const artifact = buildCanonicalArtifact(
+		"link",
+		{
+			type: "link",
+			url: "https://example.com/posts/attention-is-a-practice",
+			commentary: "   \n\t  ",
+		},
+		"2026-05-04T08:30:00.000Z",
+	);
+
+	assert.ok(artifact.mdx.endsWith("\n\n"));
+	assert.doesNotMatch(artifact.mdx, / {3}\n\t {2}/);
+});
+
 test("renderPreviewHtml escapes unsafe text for note previews", () => {
 	const html = renderPreviewHtml("note", {
 		type: "note",

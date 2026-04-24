@@ -123,9 +123,11 @@ const buildLinkArtifact = (
 	const relativePath = `links/${slug}.mdx`;
 	const source = payload.source?.trim() || inferLinkSource(url);
 	const title = inferLinkTitle(payload);
-	const commentary = payload.commentary?.trim() || "";
+	const rawCommentary = payload.commentary ?? "";
+	const trimmedCommentary = rawCommentary.trim();
+	const commentary = trimmedCommentary ? rawCommentary : "";
 	const summary =
-		payload.summary?.trim() || summarize(commentary || title, 120);
+		payload.summary?.trim() || summarize(trimmedCommentary || title, 120);
 
 	const header = mdxHeader({
 		type: "link",
