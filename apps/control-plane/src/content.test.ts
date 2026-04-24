@@ -27,6 +27,20 @@ test("buildCanonicalArtifact creates note MDX compatible with public-site note s
 	assert.match(artifact.mdx, /A body-first note from mobile\./);
 });
 
+test("buildCanonicalArtifact preserves note body whitespace in published MDX", () => {
+	const body = "    code block line\ntrailing spaces preserved here.  ";
+	const artifact = buildCanonicalArtifact(
+		"note",
+		{
+			type: "note",
+			body,
+		},
+		"2026-05-04T08:30:00.000Z",
+	);
+
+	assert.ok(artifact.mdx.endsWith(`${body}\n`));
+});
+
 test("buildCanonicalArtifact creates link MDX compatible with public-site link schema", () => {
 	const publishedAt = "2026-05-02T11:20:00.000Z";
 	const artifact = buildCanonicalArtifact(

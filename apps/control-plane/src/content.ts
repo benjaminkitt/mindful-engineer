@@ -9,11 +9,10 @@ import type {
 const toIsoDate = (value: Date) => value.toISOString().slice(0, 10);
 
 const ensureNonEmpty = (value: string, message: string) => {
-	const trimmed = value.trim();
-	if (!trimmed) {
+	if (!value.trim()) {
 		throw new Error(message);
 	}
-	return trimmed;
+	return value;
 };
 
 const slugify = (value: string) => {
