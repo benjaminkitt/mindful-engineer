@@ -461,3 +461,96 @@ test("GET /admin/review renders bookkeeping recovery notices", async () => {
 		/Published canonical content, but failed to persist publish bookkeeping: D1 updateDraft failed/,
 	);
 });
+
+test("publish failures redirect back to the admin editor instead of returning JSON", async () => {
+	const db = createDb();
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const form = new FormData();
+	form.set("type", "note");
+	form.set("body", "Ship calm systems.");
+	form.set("action", "publish");
+	form.set("flowId", "flow_kz9f_123abc");
+
+	const response = await worker.fetch(
+		new Request("https://example.com/admin/actions/entry", {
+			method: "POST",
+			body: form,
+		}),
+		env,
+	);
+
+	assert.equal(response.status, 303);
+	const location = response.headers.get("location") ?? "";
+	assert.match(location, /^\/admin\/new\?/);
+	assert.match(location, /type=note/);
+	assert.match(location, /flowId=flow_kz9f_123abc/);
+	const redirectUrl = new URL(`https://example.com${location}`);
+	assert.equal(
+		redirectUrl.searchParams.get("error"),
+		"Missing required env var: GITHUB_OWNER",
+	);
+});
+
+test("save draft failures preserve draft context in admin recovery redirects", async () => {
+	const draftId = "draft_flow_kz9f_123abc_seeded01";
+	const draftFlowId = "flow_kz9f_123abc";
+	const db = createDb({
+		first: (query, values) => {
+			if (query.includes("FROM drafts") && values[0] === draftId) {
+				return {
+					id: draftId,
+					entry_type: "note",
+					flow_id: draftFlowId,
+					state: "draft",
+					payload_json: JSON.stringify({
+						type: "note",
+						body: "Hydrated draft body",
+					}),
+					preview_html: null,
+					created_at: "2026-04-23T00:00:00.000Z",
+					updated_at: "2026-04-23T00:00:00.000Z",
+					published_at: null,
+					published_slug: null,
+					published_path: null,
+					published_sha: null,
+				};
+			}
+			return null;
+		},
+	});
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const form = new FormData();
+	form.set("type", "note");
+	form.set("body", "Ship calm systems.");
+	form.set("action", "save_draft");
+	form.set("flowId", "flow_other_654321");
+	form.set("draftId", draftId);
+
+	const response = await worker.fetch(
+		new Request("https://example.com/admin/actions/entry", {
+			method: "POST",
+			body: form,
+		}),
+		env,
+	);
+
+	assert.equal(response.status, 303);
+	const location = response.headers.get("location") ?? "";
+	assert.match(location, /^\/admin\/new\?/);
+	assert.match(location, /type=note/);
+	assert.match(location, new RegExp(`draftId=${draftId}`));
+	assert.match(location, /flowId=flow_other_654321/);
+	const redirectUrl = new URL(`https://example.com${location}`);
+	assert.equal(
+		redirectUrl.searchParams.get("error"),
+		"Flow mismatch in save draft existing row: expected flow_other_654321, received flow_kz9f_123abc",
+	);
+});

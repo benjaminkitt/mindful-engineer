@@ -305,6 +305,22 @@ const publishAction = async (
 	}
 };
 
+const redirectToEntryError = (options: {
+	entryType: EntryType;
+	flowId: string;
+	draftId?: string;
+	message: string;
+}) => {
+	const query = new URLSearchParams();
+	query.set("type", options.entryType);
+	query.set("flowId", options.flowId);
+	if (options.draftId) {
+		query.set("draftId", options.draftId);
+	}
+	query.set("error", options.message);
+	return redirect(`/admin/new?${query.toString()}`);
+};
+
 const handleEntryAction = async (request: Request, env: Env) => {
 	const formData = await request.formData();
 	const input = parseFormDataToInput(formData);
@@ -315,31 +331,31 @@ const handleEntryAction = async (request: Request, env: Env) => {
 	const flowId = scaffold.flowId;
 	const draftId = input.draftId?.trim() || undefined;
 
-	if (action === "save_draft") {
-		const savedDraftId = await saveDraftAction(env, {
-			flowId,
-			entryType,
-			payload,
-			draftId,
-		});
-		return redirect(
-			`/admin/new?type=${entryType}&flowId=${encodeURIComponent(flowId)}&draftId=${encodeURIComponent(savedDraftId)}&notice=${encodeURIComponent("Draft saved")}`,
-		);
-	}
-
-	if (action === "preview") {
-		const preview = await createPreviewAction(env, {
-			flowId,
-			entryType,
-			payload,
-			draftId,
-		});
-		return redirect(
-			`/admin/review/preview/${encodeURIComponent(preview.token)}`,
-		);
-	}
-
 	try {
+		if (action === "save_draft") {
+			const savedDraftId = await saveDraftAction(env, {
+				flowId,
+				entryType,
+				payload,
+				draftId,
+			});
+			return redirect(
+				`/admin/new?type=${entryType}&flowId=${encodeURIComponent(flowId)}&draftId=${encodeURIComponent(savedDraftId)}&notice=${encodeURIComponent("Draft saved")}`,
+			);
+		}
+
+		if (action === "preview") {
+			const preview = await createPreviewAction(env, {
+				flowId,
+				entryType,
+				payload,
+				draftId,
+			});
+			return redirect(
+				`/admin/review/preview/${encodeURIComponent(preview.token)}`,
+			);
+		}
+
 		const result = await publishAction(env, {
 			flowId,
 			entryType,
@@ -355,7 +371,14 @@ const handleEntryAction = async (request: Request, env: Env) => {
 				`/admin/review?published=${encodeURIComponent(error.result.slug)}&flowId=${encodeURIComponent(flowId)}&error=${encodeURIComponent(error.message)}`,
 			);
 		}
-		throw error;
+		const message =
+			error instanceof Error ? error.message : "Unexpected control-plane error";
+		return redirectToEntryError({
+			entryType,
+			flowId,
+			draftId,
+			message,
+		});
 	}
 };
 
