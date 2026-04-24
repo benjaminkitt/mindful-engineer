@@ -318,9 +318,10 @@ export const getEntryRecoveryByToken = async (env: Env, token: string) => {
 		`SELECT token, entry_type, flow_id, draft_id, payload_json,
           error, created_at, expires_at
        FROM entry_recoveries
-       WHERE token = ?`,
+       WHERE token = ?
+         AND expires_at >= ?`,
 	)
-		.bind(token)
+		.bind(token, new Date().toISOString())
 		.first<EntryRecoveryRow>();
 
 	if (!row) {

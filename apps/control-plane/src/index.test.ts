@@ -663,6 +663,12 @@ test("GET /admin/new rehydrates unsaved link payload from a recovery token", asy
 	assert.match(html, /value="Example Source"/);
 	assert.match(html, /value="A short summary"/);
 	assert.match(html, /value="ship-calm-systems"/);
+	const recoveryLookup = db.calls.find((call) =>
+		call.query.includes("FROM entry_recoveries"),
+	);
+	assert.ok(recoveryLookup);
+	assert.equal(recoveryLookup.values[0], recoveryToken);
+	assert.match(String(recoveryLookup.values[1]), /^\d{4}-\d{2}-\d{2}T/);
 	assert.equal(
 		db.calls.some(
 			(call) =>
@@ -671,6 +677,40 @@ test("GET /admin/new rehydrates unsaved link payload from a recovery token", asy
 		),
 		true,
 	);
+});
+
+test("GET /admin/new ignores expired recovery tokens", async () => {
+	const recoveryToken = "recover_expired";
+	const db = createDb();
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const response = await worker.fetch(
+		new Request(
+			`https://example.com/admin/new?type=link&flowId=flow_kz9f_123abc&recovery=${recoveryToken}`,
+		),
+		env,
+	);
+
+	assert.equal(response.status, 200);
+	const html = await response.text();
+	assert.doesNotMatch(html, /Link URL must use http or https/);
+	assert.doesNotMatch(html, /value="ftp:\/\/example.com\/post"/);
+	assert.equal(
+		db.calls.some((call) =>
+			call.query.includes("DELETE FROM entry_recoveries WHERE token = ?"),
+		),
+		false,
+	);
+	const recoveryLookup = db.calls.find((call) =>
+		call.query.includes("FROM entry_recoveries"),
+	);
+	assert.ok(recoveryLookup);
+	assert.match(recoveryLookup.query, /expires_at >= \?/);
+	assert.equal(recoveryLookup.values[0], recoveryToken);
+	assert.match(String(recoveryLookup.values[1]), /^\d{4}-\d{2}-\d{2}T/);
 });
 
 test("note publish failures store unsaved payload server-side for admin recovery", async () => {
