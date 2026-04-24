@@ -52,3 +52,32 @@ test("parseEntryPayload validates link URL and optional commentary", () => {
 		/http or https/,
 	);
 });
+
+test("parseEntryPayload preserves authored link commentary whitespace", () => {
+	const link = parseEntryPayload({
+		type: "link",
+		url: "https://example.com",
+		commentary: "  indented line\ncommentary with hard break  \n",
+	});
+
+	assert.equal(link.type, "link");
+	if (link.type === "link") {
+		assert.equal(
+			link.commentary,
+			"  indented line\ncommentary with hard break  \n",
+		);
+	}
+});
+
+test("parseEntryPayload drops whitespace-only link commentary", () => {
+	const link = parseEntryPayload({
+		type: "link",
+		url: "https://example.com",
+		commentary: "  \n\t  ",
+	});
+
+	assert.equal(link.type, "link");
+	if (link.type === "link") {
+		assert.equal(link.commentary, undefined);
+	}
+});

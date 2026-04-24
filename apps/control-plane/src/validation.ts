@@ -67,7 +67,8 @@ const parseLinkPayload = (input: EntrySubmissionInput): LinkPayload => {
 	}
 
 	const url = assertHttpUrl(urlValue);
-	const commentary = trim(input.commentary);
+	const rawCommentary = input.commentary ?? "";
+	const commentary = rawCommentary.trim();
 	const title = trim(input.title);
 	const source = trim(input.source);
 	const summary = trim(input.summary);
@@ -76,7 +77,7 @@ const parseLinkPayload = (input: EntrySubmissionInput): LinkPayload => {
 	return {
 		type: "link",
 		url,
-		commentary: commentary || undefined,
+		commentary: commentary ? rawCommentary : undefined,
 		title: title || undefined,
 		source: source || inferSource(url),
 		summary: summary || undefined,
