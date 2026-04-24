@@ -41,6 +41,21 @@ test("buildCanonicalArtifact preserves note body whitespace in published MDX", (
 	assert.ok(artifact.mdx.endsWith(`${body}\n`));
 });
 
+test("buildCanonicalArtifact still rejects whitespace-only note bodies", () => {
+	assert.throws(
+		() =>
+			buildCanonicalArtifact(
+				"note",
+				{
+					type: "note",
+					body: "   \n\t  ",
+				},
+				"2026-05-04T08:30:00.000Z",
+			),
+		/Note body is required/,
+	);
+});
+
 test("buildCanonicalArtifact creates link MDX compatible with public-site link schema", () => {
 	const publishedAt = "2026-05-02T11:20:00.000Z";
 	const artifact = buildCanonicalArtifact(
