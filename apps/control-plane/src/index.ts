@@ -13,7 +13,12 @@ import {
 } from "./db";
 import { createFlowScaffold, isFlowId } from "./flow";
 import { getRepositoryLabel, publishCanonicalArtifact } from "./github";
-import type { EntryPayload, EntryType, Env } from "./types";
+import type {
+	EntryPayload,
+	EntrySubmissionInput,
+	EntryType,
+	Env,
+} from "./types";
 import {
 	renderAdminHomePage,
 	renderDraftsPage,
@@ -305,11 +310,22 @@ const publishAction = async (
 	}
 };
 
+const appendQueryParam = (
+	query: URLSearchParams,
+	key: string,
+	value: string | undefined,
+) => {
+	if (value !== undefined) {
+		query.set(key, value);
+	}
+};
+
 const redirectToEntryError = (options: {
 	entryType: EntryType;
 	flowId: string;
 	draftId?: string;
 	message: string;
+	input: EntrySubmissionInput;
 }) => {
 	const query = new URLSearchParams();
 	query.set("type", options.entryType);
@@ -317,8 +333,59 @@ const redirectToEntryError = (options: {
 	if (options.draftId) {
 		query.set("draftId", options.draftId);
 	}
+	appendQueryParam(query, "body", options.input.body);
+	appendQueryParam(query, "url", options.input.url);
+	appendQueryParam(query, "commentary", options.input.commentary);
+	appendQueryParam(query, "title", options.input.title);
+	appendQueryParam(query, "source", options.input.source);
+	appendQueryParam(query, "summary", options.input.summary);
+	appendQueryParam(query, "slug", options.input.slug);
 	query.set("error", options.message);
 	return redirect(`/admin/new?${query.toString()}`);
+};
+
+const getPayloadFromSearchParams = (
+	entryType: EntryType,
+	searchParams: URLSearchParams,
+): EntryPayload | undefined => {
+	const slugHint = searchParams.get("slug") ?? undefined;
+
+	if (entryType === "note") {
+		const body = searchParams.get("body");
+		if (body === null && slugHint === undefined) {
+			return undefined;
+		}
+		return {
+			type: "note",
+			body: body ?? "",
+			slugHint,
+		};
+	}
+
+	const url = searchParams.get("url");
+	const commentary = searchParams.get("commentary") ?? undefined;
+	const title = searchParams.get("title") ?? undefined;
+	const source = searchParams.get("source") ?? undefined;
+	const summary = searchParams.get("summary") ?? undefined;
+	if (
+		url === null &&
+		commentary === undefined &&
+		title === undefined &&
+		source === undefined &&
+		summary === undefined &&
+		slugHint === undefined
+	) {
+		return undefined;
+	}
+	return {
+		type: "link",
+		url: url ?? "",
+		commentary,
+		title,
+		source,
+		summary,
+		slugHint,
+	};
 };
 
 const handleEntryAction = async (request: Request, env: Env) => {
@@ -384,6 +451,7 @@ const handleEntryAction = async (request: Request, env: Env) => {
 					: createFlowScaffold().flowId,
 			draftId,
 			message,
+			input,
 		});
 	}
 };
@@ -430,11 +498,19 @@ const routeAdminGet = async (request: Request, env: Env) => {
 			}
 		}
 
+		const redirectedPayload = getPayloadFromSearchParams(
+			entryType,
+			url.searchParams,
+		);
+
 		return htmlResponse(
 			renderNewEntryPage({
 				flowId: scaffold.flowId,
 				activeType: entryType,
-				payload: normalizePayloadForType(entryType, draft?.payload),
+				payload: normalizePayloadForType(
+					entryType,
+					redirectedPayload ?? draft?.payload,
+				),
 				draft,
 				notice,
 				error: url.searchParams.get("error") ?? undefined,

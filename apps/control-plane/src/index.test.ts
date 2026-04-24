@@ -566,6 +566,10 @@ test("invalid link input redirects back to the admin editor instead of returning
 	form.set("type", "link");
 	form.set("url", "ftp://example.com/post");
 	form.set("commentary", "Ship calm systems.");
+	form.set("title", "A thoughtful title");
+	form.set("source", "Example Source");
+	form.set("summary", "A short summary");
+	form.set("slug", "ship-calm-systems");
 	form.set("action", "preview");
 	form.set("flowId", "flow_kz9f_123abc");
 
@@ -583,9 +587,79 @@ test("invalid link input redirects back to the admin editor instead of returning
 	const redirectUrl = new URL(`https://example.com${location}`);
 	assert.equal(redirectUrl.searchParams.get("type"), "link");
 	assert.equal(redirectUrl.searchParams.get("flowId"), "flow_kz9f_123abc");
+	assert.equal(redirectUrl.searchParams.get("url"), "ftp://example.com/post");
+	assert.equal(
+		redirectUrl.searchParams.get("commentary"),
+		"Ship calm systems.",
+	);
+	assert.equal(redirectUrl.searchParams.get("title"), "A thoughtful title");
+	assert.equal(redirectUrl.searchParams.get("source"), "Example Source");
+	assert.equal(redirectUrl.searchParams.get("summary"), "A short summary");
+	assert.equal(redirectUrl.searchParams.get("slug"), "ship-calm-systems");
 	assert.equal(
 		redirectUrl.searchParams.get("error"),
 		"Link URL must use http or https",
+	);
+});
+
+test("GET /admin/new rehydrates unsaved link payload from redirect query params", async () => {
+	const db = createDb();
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const response = await worker.fetch(
+		new Request(
+			"https://example.com/admin/new?type=link&flowId=flow_kz9f_123abc&url=ftp%3A%2F%2Fexample.com%2Fpost&commentary=Ship%20calm%20systems.&title=A%20thoughtful%20title&source=Example%20Source&summary=A%20short%20summary&slug=ship-calm-systems&error=Link%20URL%20must%20use%20http%20or%20https",
+		),
+		env,
+	);
+
+	assert.equal(response.status, 200);
+	const html = await response.text();
+	assert.match(html, /Link URL must use http or https/);
+	assert.match(html, /value="ftp:\/\/example.com\/post"/);
+	assert.match(html, />Ship calm systems\.<\/textarea>/);
+	assert.match(html, /value="A thoughtful title"/);
+	assert.match(html, /value="Example Source"/);
+	assert.match(html, /value="A short summary"/);
+	assert.match(html, /value="ship-calm-systems"/);
+});
+
+test("note publish failures preserve unsaved payload in admin recovery redirects", async () => {
+	const db = createDb();
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const form = new FormData();
+	form.set("type", "note");
+	form.set("body", "  Ship calm systems.  ");
+	form.set("slug", "ship-calm-systems");
+	form.set("action", "publish");
+	form.set("flowId", "flow_kz9f_123abc");
+
+	const response = await worker.fetch(
+		new Request("https://example.com/admin/actions/entry", {
+			method: "POST",
+			body: form,
+		}),
+		env,
+	);
+
+	assert.equal(response.status, 303);
+	const location = response.headers.get("location") ?? "";
+	assert.match(location, /^\/admin\/new\?/);
+	const redirectUrl = new URL(`https://example.com${location}`);
+	assert.equal(redirectUrl.searchParams.get("type"), "note");
+	assert.equal(redirectUrl.searchParams.get("flowId"), "flow_kz9f_123abc");
+	assert.equal(redirectUrl.searchParams.get("body"), "  Ship calm systems.  ");
+	assert.equal(redirectUrl.searchParams.get("slug"), "ship-calm-systems");
+	assert.equal(
+		redirectUrl.searchParams.get("error"),
+		"Missing required env var: GITHUB_OWNER",
 	);
 });
 
