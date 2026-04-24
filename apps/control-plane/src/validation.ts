@@ -46,8 +46,8 @@ export const parseAction = (value: string | undefined): EntryAction => {
 };
 
 const parseNotePayload = (input: EntrySubmissionInput): NotePayload => {
-	const body = trim(input.body);
-	if (!body) {
+	const body = input.body ?? "";
+	if (!body.trim()) {
 		throw new Error("Note body is required");
 	}
 

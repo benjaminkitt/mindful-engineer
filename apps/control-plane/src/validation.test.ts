@@ -22,6 +22,18 @@ test("parseEntryPayload enforces body-first note creation", () => {
 	);
 });
 
+test("parseEntryPayload preserves authored note body whitespace", () => {
+	const note = parseEntryPayload({
+		type: "note",
+		body: "  indented line\ncontent\n",
+	});
+
+	assert.equal(note.type, "note");
+	if (note.type === "note") {
+		assert.equal(note.body, "  indented line\ncontent\n");
+	}
+});
+
 test("parseEntryPayload validates link URL and optional commentary", () => {
 	const link = parseEntryPayload({
 		type: "link",
