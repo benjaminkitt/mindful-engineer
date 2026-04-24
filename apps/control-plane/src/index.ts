@@ -2,10 +2,14 @@ import { hasAccessJwt, verifyAccessJwt } from "./auth";
 import { buildCanonicalArtifact, renderPreviewHtml } from "./content";
 import {
 	createDraft,
+	createEntryRecovery,
 	createPreviewSession,
 	createPublishEvent,
+	deleteEntryRecoveryByToken,
+	deleteExpiredEntryRecoveries,
 	deleteExpiredPreviewSessions,
 	getDraftById,
+	getEntryRecoveryByToken,
 	getPreviewByToken,
 	listDrafts,
 	listPublishEvents,
@@ -95,6 +99,14 @@ const normalizePayloadForType = (
 
 const previewExpiryIso = (minutes = 30) =>
 	new Date(Date.now() + minutes * 60_000).toISOString();
+
+const randomToken = (length = 12) => {
+	const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+	const bytes = crypto.getRandomValues(new Uint8Array(length));
+	return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+};
+
+const newEntryRecoveryToken = () => `recover_${randomToken(10)}`;
 
 class PublishBookkeepingError extends Error {
 	readonly result: {
@@ -310,82 +322,60 @@ const publishAction = async (
 	}
 };
 
-const appendQueryParam = (
-	query: URLSearchParams,
-	key: string,
-	value: string | undefined,
-) => {
-	if (value !== undefined) {
-		query.set(key, value);
+const getPayloadFromInput = (
+	entryType: EntryType,
+	input: EntrySubmissionInput,
+): EntryPayload => {
+	if (entryType === "note") {
+		return {
+			type: "note",
+			body: input.body ?? "",
+			slugHint: input.slug,
+		};
 	}
+
+	return {
+		type: "link",
+		url: input.url ?? "",
+		commentary: input.commentary,
+		title: input.title,
+		source: input.source,
+		summary: input.summary,
+		slugHint: input.slug,
+	};
 };
 
-const redirectToEntryError = (options: {
-	entryType: EntryType;
-	flowId: string;
-	draftId?: string;
-	message: string;
-	input: EntrySubmissionInput;
-}) => {
+const redirectToEntryError = async (
+	env: Env,
+	options: {
+		entryType: EntryType;
+		flowId: string;
+		draftId?: string;
+		message: string;
+		input: EntrySubmissionInput;
+	},
+) => {
+	const token = newEntryRecoveryToken();
+	const now = currentIso();
+	await deleteExpiredEntryRecoveries(env, now);
+	await createEntryRecovery(env, {
+		token,
+		entryType: options.entryType,
+		flowId: options.flowId,
+		draftId: options.draftId,
+		payload: getPayloadFromInput(options.entryType, options.input),
+		error: options.message,
+		createdAt: now,
+		expiresAt: previewExpiryIso(),
+	});
 	const query = new URLSearchParams();
 	query.set("type", options.entryType);
 	query.set("flowId", options.flowId);
 	if (options.draftId) {
 		query.set("draftId", options.draftId);
 	}
-	appendQueryParam(query, "body", options.input.body);
-	appendQueryParam(query, "url", options.input.url);
-	appendQueryParam(query, "commentary", options.input.commentary);
-	appendQueryParam(query, "title", options.input.title);
-	appendQueryParam(query, "source", options.input.source);
-	appendQueryParam(query, "summary", options.input.summary);
-	appendQueryParam(query, "slug", options.input.slug);
-	query.set("error", options.message);
+	query.set("recovery", token);
 	return redirect(`/admin/new?${query.toString()}`);
-};
-
-const getPayloadFromSearchParams = (
-	entryType: EntryType,
-	searchParams: URLSearchParams,
-): EntryPayload | undefined => {
-	const slugHint = searchParams.get("slug") ?? undefined;
-
-	if (entryType === "note") {
-		const body = searchParams.get("body");
-		if (body === null && slugHint === undefined) {
-			return undefined;
-		}
-		return {
-			type: "note",
-			body: body ?? "",
-			slugHint,
-		};
-	}
-
-	const url = searchParams.get("url");
-	const commentary = searchParams.get("commentary") ?? undefined;
-	const title = searchParams.get("title") ?? undefined;
-	const source = searchParams.get("source") ?? undefined;
-	const summary = searchParams.get("summary") ?? undefined;
-	if (
-		url === null &&
-		commentary === undefined &&
-		title === undefined &&
-		source === undefined &&
-		summary === undefined &&
-		slugHint === undefined
-	) {
-		return undefined;
-	}
-	return {
-		type: "link",
-		url: url ?? "",
-		commentary,
-		title,
-		source,
-		summary,
-		slugHint,
-	};
 };
 
 const handleEntryAction = async (request: Request, env: Env) => {
@@ -443,7 +433,7 @@ const handleEntryAction = async (request: Request, env: Env) => {
 		}
 		const message =
 			error instanceof Error ? error.message : "Unexpected control-plane error";
-		return redirectToEntryError({
+		return redirectToEntryError(env, {
 			entryType: requestedType,
 			flowId:
 				requestedFlowId && isFlowId(requestedFlowId)
@@ -486,22 +476,32 @@ const routeAdminGet = async (request: Request, env: Env) => {
 		if (draftId && !draft) {
 			throw new Error(`Draft not found: ${draftId}`);
 		}
-		const scaffold = createFlowScaffold(providedFlow ?? draft?.flowId);
-		const entryType =
-			draft && !requestedType ? draft.entryType : getEntryType(requestedType);
+		const recoveryToken = url.searchParams.get("recovery") ?? undefined;
+		const recovery = recoveryToken
+			? await getEntryRecoveryByToken(env, recoveryToken)
+			: undefined;
+		if (recoveryToken && recovery) {
+			await deleteEntryRecoveryByToken(env, recoveryToken);
+		}
+		const scaffold = createFlowScaffold(
+			providedFlow ?? recovery?.flowId ?? draft?.flowId,
+		);
+		let entryType: EntryType;
+		if (recovery) {
+			entryType = recovery.entryType;
+		} else if (draft && !requestedType) {
+			entryType = draft.entryType;
+		} else {
+			entryType = getEntryType(requestedType);
+		}
 		if (draft) {
 			if (providedFlow) {
 				scaffold.assertSameFlow(draft.flowId, "new page draft hydration");
 			}
-			if (requestedType) {
+			if (!recovery && requestedType) {
 				scaffold.assertEntryType(draft.entryType, entryType);
 			}
 		}
-
-		const redirectedPayload = getPayloadFromSearchParams(
-			entryType,
-			url.searchParams,
-		);
 
 		return htmlResponse(
 			renderNewEntryPage({
@@ -509,11 +509,11 @@ const routeAdminGet = async (request: Request, env: Env) => {
 				activeType: entryType,
 				payload: normalizePayloadForType(
 					entryType,
-					redirectedPayload ?? draft?.payload,
+					recovery?.payload ?? draft?.payload,
 				),
 				draft,
 				notice,
-				error: url.searchParams.get("error") ?? undefined,
+				error: recovery?.error ?? url.searchParams.get("error") ?? undefined,
 			}),
 		);
 	}
@@ -627,6 +627,7 @@ export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const url = parseUrl(request);
 		if (
+			url.pathname !== "/" &&
 			!url.pathname.startsWith("/admin") &&
 			!url.pathname.startsWith("/api/")
 		) {
@@ -654,7 +655,10 @@ export default {
 				return await handleEntryAction(request, env);
 			}
 
-			if (request.method === "GET" && url.pathname.startsWith("/admin")) {
+			if (
+				request.method === "GET" &&
+				(url.pathname === "/" || url.pathname.startsWith("/admin"))
+			) {
 				return await routeAdminGet(request, env);
 			}
 
@@ -669,7 +673,10 @@ export default {
 					? error.message
 					: "Unexpected control-plane error";
 
-			if (request.method === "GET" && url.pathname.startsWith("/admin")) {
+			if (
+				request.method === "GET" &&
+				(url.pathname === "/" || url.pathname.startsWith("/admin"))
+			) {
 				const providedFlow = url.searchParams.get("flowId");
 				const fallbackFlow =
 					providedFlow && isFlowId(providedFlow)

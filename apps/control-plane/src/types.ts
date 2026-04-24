@@ -84,6 +84,17 @@ export interface PublishEventRecord {
 	status: "published";
 }
 
+export interface EntryRecoveryRecord {
+	token: string;
+	entryType: EntryType;
+	flowId: string;
+	draftId?: string;
+	payload: EntryPayload;
+	error: string;
+	createdAt: string;
+	expiresAt: string;
+}
+
 export interface CanonicalArtifact {
 	slug: string;
 	entryType: EntryType;

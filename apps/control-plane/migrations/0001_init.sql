@@ -29,6 +29,20 @@ CREATE TABLE IF NOT EXISTS preview_sessions (
 CREATE INDEX IF NOT EXISTS idx_preview_sessions_token
   ON preview_sessions(preview_token);
 
+CREATE TABLE IF NOT EXISTS entry_recoveries (
+  token TEXT PRIMARY KEY,
+  entry_type TEXT NOT NULL CHECK (entry_type IN ('note', 'link')),
+  flow_id TEXT NOT NULL,
+  draft_id TEXT,
+  payload_json TEXT NOT NULL,
+  error TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_entry_recoveries_expires
+  ON entry_recoveries(expires_at);
+
 CREATE TABLE IF NOT EXISTS publish_events (
   id TEXT PRIMARY KEY,
   draft_id TEXT,

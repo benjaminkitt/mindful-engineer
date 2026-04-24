@@ -44,6 +44,20 @@ const createDb = (options?: {
 	};
 };
 
+test("GET / reaches the admin home page", async () => {
+	const db = createDb();
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const response = await worker.fetch(new Request("https://example.com/"), env);
+	assert.equal(response.status, 200);
+	assert.match(response.headers.get("content-type") ?? "", /text\/html/);
+	const html = await response.text();
+	assert.match(html, /Mindful Engineer \/ Admin/);
+});
+
 test("GET /admin does not trigger preview session cleanup writes", async () => {
 	const db = createDb();
 	const env = {
@@ -490,9 +504,10 @@ test("publish failures redirect back to the admin editor instead of returning JS
 	assert.match(location, /flowId=flow_kz9f_123abc/);
 	const redirectUrl = new URL(`https://example.com${location}`);
 	assert.equal(
-		redirectUrl.searchParams.get("error"),
-		"Missing required env var: GITHUB_OWNER",
+		redirectUrl.searchParams.get("recovery")?.startsWith("recover_"),
+		true,
 	);
+	assert.equal(redirectUrl.searchParams.get("error"), null);
 });
 
 test("save draft failures preserve draft context in admin recovery redirects", async () => {
@@ -550,9 +565,10 @@ test("save draft failures preserve draft context in admin recovery redirects", a
 	assert.match(location, /flowId=flow_other_654321/);
 	const redirectUrl = new URL(`https://example.com${location}`);
 	assert.equal(
-		redirectUrl.searchParams.get("error"),
-		"Flow mismatch in save draft existing row: expected flow_other_654321, received flow_kz9f_123abc",
+		redirectUrl.searchParams.get("recovery")?.startsWith("recover_"),
+		true,
 	);
+	assert.equal(redirectUrl.searchParams.get("error"), null);
 });
 
 test("invalid link input redirects back to the admin editor instead of returning JSON", async () => {
@@ -587,23 +603,45 @@ test("invalid link input redirects back to the admin editor instead of returning
 	const redirectUrl = new URL(`https://example.com${location}`);
 	assert.equal(redirectUrl.searchParams.get("type"), "link");
 	assert.equal(redirectUrl.searchParams.get("flowId"), "flow_kz9f_123abc");
-	assert.equal(redirectUrl.searchParams.get("url"), "ftp://example.com/post");
 	assert.equal(
-		redirectUrl.searchParams.get("commentary"),
-		"Ship calm systems.",
+		redirectUrl.searchParams.get("recovery")?.startsWith("recover_"),
+		true,
 	);
-	assert.equal(redirectUrl.searchParams.get("title"), "A thoughtful title");
-	assert.equal(redirectUrl.searchParams.get("source"), "Example Source");
-	assert.equal(redirectUrl.searchParams.get("summary"), "A short summary");
-	assert.equal(redirectUrl.searchParams.get("slug"), "ship-calm-systems");
-	assert.equal(
-		redirectUrl.searchParams.get("error"),
-		"Link URL must use http or https",
-	);
+	assert.equal(redirectUrl.searchParams.get("url"), null);
+	assert.equal(redirectUrl.searchParams.get("commentary"), null);
+	assert.equal(redirectUrl.searchParams.get("error"), null);
 });
 
-test("GET /admin/new rehydrates unsaved link payload from redirect query params", async () => {
-	const db = createDb();
+test("GET /admin/new rehydrates unsaved link payload from a recovery token", async () => {
+	const recoveryToken = "recover_testtoken";
+	const db = createDb({
+		first: (query, values) => {
+			if (
+				query.includes("FROM entry_recoveries") &&
+				values[0] === recoveryToken
+			) {
+				return {
+					token: recoveryToken,
+					entry_type: "link",
+					flow_id: "flow_kz9f_123abc",
+					draft_id: null,
+					payload_json: JSON.stringify({
+						type: "link",
+						url: "ftp://example.com/post",
+						commentary: "Ship calm systems.",
+						title: "A thoughtful title",
+						source: "Example Source",
+						summary: "A short summary",
+						slugHint: "ship-calm-systems",
+					}),
+					error: "Link URL must use http or https",
+					created_at: "2026-04-24T00:00:00.000Z",
+					expires_at: "3026-04-24T00:30:00.000Z",
+				};
+			}
+			return null;
+		},
+	});
 	const env = {
 		DB: db.binding,
 		ACCESS_PROTECTION_MODE: "off",
@@ -611,7 +649,7 @@ test("GET /admin/new rehydrates unsaved link payload from redirect query params"
 
 	const response = await worker.fetch(
 		new Request(
-			"https://example.com/admin/new?type=link&flowId=flow_kz9f_123abc&url=ftp%3A%2F%2Fexample.com%2Fpost&commentary=Ship%20calm%20systems.&title=A%20thoughtful%20title&source=Example%20Source&summary=A%20short%20summary&slug=ship-calm-systems&error=Link%20URL%20must%20use%20http%20or%20https",
+			`https://example.com/admin/new?type=link&flowId=flow_kz9f_123abc&recovery=${recoveryToken}`,
 		),
 		env,
 	);
@@ -625,9 +663,17 @@ test("GET /admin/new rehydrates unsaved link payload from redirect query params"
 	assert.match(html, /value="Example Source"/);
 	assert.match(html, /value="A short summary"/);
 	assert.match(html, /value="ship-calm-systems"/);
+	assert.equal(
+		db.calls.some(
+			(call) =>
+				call.query.includes("DELETE FROM entry_recoveries WHERE token = ?") &&
+				call.values[0] === recoveryToken,
+		),
+		true,
+	);
 });
 
-test("note publish failures preserve unsaved payload in admin recovery redirects", async () => {
+test("note publish failures store unsaved payload server-side for admin recovery", async () => {
 	const db = createDb();
 	const env = {
 		DB: db.binding,
@@ -655,12 +701,28 @@ test("note publish failures preserve unsaved payload in admin recovery redirects
 	const redirectUrl = new URL(`https://example.com${location}`);
 	assert.equal(redirectUrl.searchParams.get("type"), "note");
 	assert.equal(redirectUrl.searchParams.get("flowId"), "flow_kz9f_123abc");
-	assert.equal(redirectUrl.searchParams.get("body"), "  Ship calm systems.  ");
-	assert.equal(redirectUrl.searchParams.get("slug"), "ship-calm-systems");
 	assert.equal(
-		redirectUrl.searchParams.get("error"),
-		"Missing required env var: GITHUB_OWNER",
+		redirectUrl.searchParams.get("recovery")?.startsWith("recover_"),
+		true,
 	);
+	assert.equal(redirectUrl.searchParams.get("body"), null);
+	assert.equal(redirectUrl.searchParams.get("slug"), null);
+	assert.equal(redirectUrl.searchParams.get("error"), null);
+	const insertCall = db.calls.find((call) =>
+		call.query.includes("INSERT INTO entry_recoveries"),
+	);
+	assert.ok(insertCall);
+	assert.equal(insertCall.values[1], "note");
+	assert.equal(insertCall.values[2], "flow_kz9f_123abc");
+	assert.equal(
+		insertCall.values[4],
+		JSON.stringify({
+			type: "note",
+			body: "  Ship calm systems.  ",
+			slugHint: "ship-calm-systems",
+		}),
+	);
+	assert.equal(insertCall.values[5], "Missing required env var: GITHUB_OWNER");
 });
 
 test("invalid flowId input redirects back to the admin editor with a fresh flowId", async () => {
@@ -695,9 +757,10 @@ test("invalid flowId input redirects back to the admin editor with a fresh flowI
 	);
 	assert.notEqual(redirectUrl.searchParams.get("flowId"), "invalid-flow");
 	assert.equal(
-		redirectUrl.searchParams.get("error"),
-		'Invalid flowId "invalid-flow". Expected pattern: ^flow_[a-z0-9]+_[a-z0-9]{6}$',
+		redirectUrl.searchParams.get("recovery")?.startsWith("recover_"),
+		true,
 	);
+	assert.equal(redirectUrl.searchParams.get("error"), null);
 });
 
 test("unauthorized API requests return JSON instead of HTML", async () => {

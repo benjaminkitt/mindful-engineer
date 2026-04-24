@@ -2,6 +2,7 @@ import type {
 	DraftRecord,
 	DraftState,
 	EntryPayload,
+	EntryRecoveryRecord,
 	EntryType,
 	Env,
 	PublishEventRecord,
@@ -34,6 +35,17 @@ interface PublishEventRow {
 	repository: string;
 	created_at: string;
 	status: "published";
+}
+
+interface EntryRecoveryRow {
+	token: string;
+	entry_type: EntryType;
+	flow_id: string;
+	draft_id: string | null;
+	payload_json: string;
+	error: string;
+	created_at: string;
+	expires_at: string;
 }
 
 export interface PreviewTokenRecord {
@@ -86,6 +98,17 @@ const mapPublishEvent = (row: PublishEventRow): PublishEventRecord => ({
 });
 
 const serializePayload = (payload: EntryPayload) => JSON.stringify(payload);
+
+const mapEntryRecovery = (row: EntryRecoveryRow): EntryRecoveryRecord => ({
+	token: row.token,
+	entryType: row.entry_type,
+	flowId: row.flow_id,
+	draftId: row.draft_id ?? undefined,
+	payload: parsePayload(row.payload_json),
+	error: row.error,
+	createdAt: row.created_at,
+	expiresAt: row.expires_at,
+});
 
 export const createDraft = async (
 	env: Env,
@@ -265,6 +288,61 @@ export const getPreviewByToken = async (env: Env, token: string) => {
 		previewHtml: row.preview_html,
 		payload: parsePayload(row.payload_json),
 	} satisfies PreviewTokenRecord;
+};
+
+export const createEntryRecovery = async (
+	env: Env,
+	record: EntryRecoveryRecord,
+) => {
+	await env.DB.prepare(
+		`INSERT INTO entry_recoveries (
+      token, entry_type, flow_id, draft_id, payload_json,
+      error, created_at, expires_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+	)
+		.bind(
+			record.token,
+			record.entryType,
+			record.flowId,
+			record.draftId ?? null,
+			serializePayload(record.payload),
+			record.error,
+			record.createdAt,
+			record.expiresAt,
+		)
+		.run();
+};
+
+export const getEntryRecoveryByToken = async (env: Env, token: string) => {
+	const row = await env.DB.prepare(
+		`SELECT token, entry_type, flow_id, draft_id, payload_json,
+          error, created_at, expires_at
+       FROM entry_recoveries
+       WHERE token = ?`,
+	)
+		.bind(token)
+		.first<EntryRecoveryRow>();
+
+	if (!row) {
+		return undefined;
+	}
+
+	return mapEntryRecovery(row);
+};
+
+export const deleteExpiredEntryRecoveries = async (
+	env: Env,
+	nowIso: string,
+) => {
+	await env.DB.prepare("DELETE FROM entry_recoveries WHERE expires_at < ?")
+		.bind(nowIso)
+		.run();
+};
+
+export const deleteEntryRecoveryByToken = async (env: Env, token: string) => {
+	await env.DB.prepare("DELETE FROM entry_recoveries WHERE token = ?")
+		.bind(token)
+		.run();
 };
 
 export const createPublishEvent = async (
