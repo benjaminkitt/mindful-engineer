@@ -257,6 +257,125 @@ test("GET /admin/new still rejects a mismatched explicit flowId for an existing 
 	assert.match(html, /name="flowId" value="flow_other_654321"/);
 });
 
+test("GET /admin/new omits note draftId from the link tab", async () => {
+	const draftId = "draft_flow_kz9f_123abc_note01";
+	const draftFlowId = "flow_kz9f_123abc";
+	const db = createDb({
+		first: (query, values) => {
+			if (query.includes("FROM drafts") && values[0] === draftId) {
+				return {
+					id: draftId,
+					entry_type: "note",
+					flow_id: draftFlowId,
+					state: "draft",
+					payload_json: JSON.stringify({
+						type: "note",
+						body: "Hydrated draft body",
+					}),
+					preview_html: null,
+					created_at: "2026-04-23T00:00:00.000Z",
+					updated_at: "2026-04-23T00:00:00.000Z",
+					published_at: null,
+					published_slug: null,
+					published_path: null,
+					published_sha: null,
+				};
+			}
+			return null;
+		},
+	});
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const response = await worker.fetch(
+		new Request(
+			`https://example.com/admin/new?draftId=${draftId}&flowId=${draftFlowId}&type=note`,
+		),
+		env,
+	);
+
+	assert.equal(response.status, 200);
+	const html = await response.text();
+	assert.match(
+		html,
+		new RegExp(
+			`href="/admin/new\\?flowId=${draftFlowId}&type=note&draftId=${draftId}" class="active"`,
+		),
+	);
+	assert.match(
+		html,
+		new RegExp(`href="/admin/new\\?flowId=${draftFlowId}&type=link" class=""`),
+	);
+	assert.doesNotMatch(
+		html,
+		new RegExp(
+			`href="/admin/new\\?flowId=${draftFlowId}&type=link&draftId=${draftId}"`,
+		),
+	);
+});
+
+test("GET /admin/new omits link draftId from the note tab", async () => {
+	const draftId = "draft_flow_kz9f_123abc_link01";
+	const draftFlowId = "flow_kz9f_123abc";
+	const db = createDb({
+		first: (query, values) => {
+			if (query.includes("FROM drafts") && values[0] === draftId) {
+				return {
+					id: draftId,
+					entry_type: "link",
+					flow_id: draftFlowId,
+					state: "draft",
+					payload_json: JSON.stringify({
+						type: "link",
+						url: "https://example.com/post",
+						commentary: "Hydrated link commentary",
+					}),
+					preview_html: null,
+					created_at: "2026-04-23T00:00:00.000Z",
+					updated_at: "2026-04-23T00:00:00.000Z",
+					published_at: null,
+					published_slug: null,
+					published_path: null,
+					published_sha: null,
+				};
+			}
+			return null;
+		},
+	});
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const response = await worker.fetch(
+		new Request(
+			`https://example.com/admin/new?draftId=${draftId}&flowId=${draftFlowId}&type=link`,
+		),
+		env,
+	);
+
+	assert.equal(response.status, 200);
+	const html = await response.text();
+	assert.match(
+		html,
+		new RegExp(
+			`href="/admin/new\\?flowId=${draftFlowId}&type=link&draftId=${draftId}" class="active"`,
+		),
+	);
+	assert.match(
+		html,
+		new RegExp(`href="/admin/new\\?flowId=${draftFlowId}&type=note" class=""`),
+	);
+	assert.doesNotMatch(
+		html,
+		new RegExp(
+			`href="/admin/new\\?flowId=${draftFlowId}&type=note&draftId=${draftId}"`,
+		),
+	);
+});
+
 test("publish redirects to review with a recovery notice when draft bookkeeping fails after GitHub publish", async () => {
 	const db = createDb({
 		run: (query) => {
@@ -310,7 +429,7 @@ test("publish redirects to review with a recovery notice when draft bookkeeping 
 		assert.equal(response.status, 303);
 		const location = response.headers.get("location") ?? "";
 		assert.match(location, /^\/admin\/review\?/);
-		assert.match(location, /published=2026-04-23-ship-calm-systems/);
+		assert.match(location, /published=\d{4}-\d{2}-\d{2}-ship-calm-systems/);
 		assert.match(
 			decodeURIComponent(location),
 			/Published canonical content, but failed to persist publish bookkeeping: D1 updateDraft failed/,

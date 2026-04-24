@@ -236,18 +236,20 @@ const renderTypeSwitch = (
 	flowId: string,
 	draftId?: string,
 ) => {
-	const query = new URLSearchParams();
-	query.set("flowId", flowId);
-	if (draftId) {
-		query.set("draftId", draftId);
-	}
+	const buildTypeUrl = (type: EntryType) => {
+		const query = new URLSearchParams();
+		query.set("flowId", flowId);
+		query.set("type", type);
+		if (draftId && type === active) {
+			query.set("draftId", draftId);
+		}
+		return `/admin/new?${query.toString()}`;
+	};
 
-	const noteUrl = new URLSearchParams(query);
-	noteUrl.set("type", "note");
-	const linkUrl = new URLSearchParams(query);
-	linkUrl.set("type", "link");
+	const noteUrl = buildTypeUrl("note");
+	const linkUrl = buildTypeUrl("link");
 
-	return `<div class="type-switch"><a href="/admin/new?${noteUrl.toString()}" class="${active === "note" ? "active" : ""}">Note</a><a href="/admin/new?${linkUrl.toString()}" class="${active === "link" ? "active" : ""}">Link</a></div>`;
+	return `<div class="type-switch"><a href="${noteUrl}" class="${active === "note" ? "active" : ""}">Note</a><a href="${linkUrl}" class="${active === "link" ? "active" : ""}">Link</a></div>`;
 };
 
 const hiddenPayloadInputs = (payload: EntryPayload) => {
