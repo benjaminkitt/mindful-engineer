@@ -324,14 +324,17 @@ const redirectToEntryError = (options: {
 const handleEntryAction = async (request: Request, env: Env) => {
 	const formData = await request.formData();
 	const input = parseFormDataToInput(formData);
-	const action = parseAction(input.action);
-	const payload = parseEntryPayload(input);
-	const entryType = payload.type;
-	const scaffold = createFlowScaffold(input.flowId);
-	const flowId = scaffold.flowId;
+	const requestedType = getEntryType(input.type ?? null);
 	const draftId = input.draftId?.trim() || undefined;
+	const requestedFlowId = input.flowId?.trim() || undefined;
 
 	try {
+		const action = parseAction(input.action);
+		const payload = parseEntryPayload(input);
+		const entryType = payload.type;
+		const scaffold = createFlowScaffold(input.flowId);
+		const flowId = scaffold.flowId;
+
 		if (action === "save_draft") {
 			const savedDraftId = await saveDraftAction(env, {
 				flowId,
@@ -368,14 +371,17 @@ const handleEntryAction = async (request: Request, env: Env) => {
 	} catch (error) {
 		if (error instanceof PublishBookkeepingError) {
 			return redirect(
-				`/admin/review?published=${encodeURIComponent(error.result.slug)}&flowId=${encodeURIComponent(flowId)}&error=${encodeURIComponent(error.message)}`,
+				`/admin/review?published=${encodeURIComponent(error.result.slug)}&flowId=${encodeURIComponent(requestedFlowId ?? createFlowScaffold().flowId)}&error=${encodeURIComponent(error.message)}`,
 			);
 		}
 		const message =
 			error instanceof Error ? error.message : "Unexpected control-plane error";
 		return redirectToEntryError({
-			entryType,
-			flowId,
+			entryType: requestedType,
+			flowId:
+				requestedFlowId && isFlowId(requestedFlowId)
+					? requestedFlowId
+					: createFlowScaffold().flowId,
 			draftId,
 			message,
 		});

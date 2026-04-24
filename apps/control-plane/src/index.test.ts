@@ -554,3 +554,74 @@ test("save draft failures preserve draft context in admin recovery redirects", a
 		"Flow mismatch in save draft existing row: expected flow_other_654321, received flow_kz9f_123abc",
 	);
 });
+
+test("invalid link input redirects back to the admin editor instead of returning JSON", async () => {
+	const db = createDb();
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const form = new FormData();
+	form.set("type", "link");
+	form.set("url", "ftp://example.com/post");
+	form.set("commentary", "Ship calm systems.");
+	form.set("action", "preview");
+	form.set("flowId", "flow_kz9f_123abc");
+
+	const response = await worker.fetch(
+		new Request("https://example.com/admin/actions/entry", {
+			method: "POST",
+			body: form,
+		}),
+		env,
+	);
+
+	assert.equal(response.status, 303);
+	const location = response.headers.get("location") ?? "";
+	assert.match(location, /^\/admin\/new\?/);
+	const redirectUrl = new URL(`https://example.com${location}`);
+	assert.equal(redirectUrl.searchParams.get("type"), "link");
+	assert.equal(redirectUrl.searchParams.get("flowId"), "flow_kz9f_123abc");
+	assert.equal(
+		redirectUrl.searchParams.get("error"),
+		"Link URL must use http or https",
+	);
+});
+
+test("invalid flowId input redirects back to the admin editor with a fresh flowId", async () => {
+	const db = createDb();
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "off",
+	} satisfies Env;
+
+	const form = new FormData();
+	form.set("type", "note");
+	form.set("body", "Ship calm systems.");
+	form.set("action", "save_draft");
+	form.set("flowId", "invalid-flow");
+
+	const response = await worker.fetch(
+		new Request("https://example.com/admin/actions/entry", {
+			method: "POST",
+			body: form,
+		}),
+		env,
+	);
+
+	assert.equal(response.status, 303);
+	const location = response.headers.get("location") ?? "";
+	assert.match(location, /^\/admin\/new\?/);
+	const redirectUrl = new URL(`https://example.com${location}`);
+	assert.equal(redirectUrl.searchParams.get("type"), "note");
+	assert.match(
+		redirectUrl.searchParams.get("flowId") ?? "",
+		/^flow_[a-z0-9]+_[a-z0-9]{6}$/,
+	);
+	assert.notEqual(redirectUrl.searchParams.get("flowId"), "invalid-flow");
+	assert.equal(
+		redirectUrl.searchParams.get("error"),
+		'Invalid flowId "invalid-flow". Expected pattern: ^flow_[a-z0-9]+_[a-z0-9]{6}$',
+	);
+});
