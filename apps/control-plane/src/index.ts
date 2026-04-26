@@ -65,7 +65,12 @@ const redirect = (location: string, status = 303) =>
 		},
 	});
 
-const isTestEnvironment = () => process.env.NODE_ENV === "test";
+const isTestEnvironment = () => {
+	const nodeProcess = (
+		globalThis as { process?: { env?: { NODE_ENV?: string } } }
+	).process;
+	return nodeProcess?.env?.NODE_ENV === "test";
+};
 
 const getAccessProtectionMode = (env: Env) =>
 	isTestEnvironment()
