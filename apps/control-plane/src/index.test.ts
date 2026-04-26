@@ -878,21 +878,65 @@ test("invalid flowId input redirects back to the admin editor with a fresh flowI
 	assert.equal(redirectUrl.searchParams.get("error"), null);
 });
 
-test("unauthorized API requests return JSON instead of HTML", async () => {
+test("local and test environments skip access validation by default", async () => {
 	const db = createDb();
 	const env = {
 		DB: db.binding,
 		ACCESS_PROTECTION_MODE: "cloudflare-access",
 	} satisfies Env;
 
-	const response = await worker.fetch(
-		new Request("https://example.com/api/control-plane/health"),
-		env,
-	);
+	const originalNodeEnv = process.env.NODE_ENV;
+	process.env.NODE_ENV = "test";
+	try {
+		const response = await worker.fetch(
+			new Request("https://example.com/api/control-plane/health"),
+			env,
+		);
 
-	assert.equal(response.status, 401);
-	assert.match(response.headers.get("content-type") ?? "", /application\/json/);
-	assert.deepEqual(await response.json(), { error: "Unauthorized" });
+		assert.equal(response.status, 200);
+		assert.match(
+			response.headers.get("content-type") ?? "",
+			/application\/json/,
+		);
+		const payload = (await response.json()) as { accessMode: string };
+		assert.equal(payload.accessMode, "off");
+	} finally {
+		if (originalNodeEnv === undefined) {
+			delete process.env.NODE_ENV;
+		} else {
+			process.env.NODE_ENV = originalNodeEnv;
+		}
+	}
+});
+
+test("deployed access-protected API requests return JSON instead of HTML", async () => {
+	const db = createDb();
+	const env = {
+		DB: db.binding,
+		ACCESS_PROTECTION_MODE: "cloudflare-access",
+	} satisfies Env;
+
+	const originalNodeEnv = process.env.NODE_ENV;
+	delete process.env.NODE_ENV;
+	try {
+		const response = await worker.fetch(
+			new Request("https://example.com/api/control-plane/health"),
+			env,
+		);
+
+		assert.equal(response.status, 401);
+		assert.match(
+			response.headers.get("content-type") ?? "",
+			/application\/json/,
+		);
+		assert.deepEqual(await response.json(), { error: "Unauthorized" });
+	} finally {
+		if (originalNodeEnv === undefined) {
+			delete process.env.NODE_ENV;
+		} else {
+			process.env.NODE_ENV = originalNodeEnv;
+		}
+	}
 });
 
 test("GET /admin/new fails fast when draftId is missing", async () => {

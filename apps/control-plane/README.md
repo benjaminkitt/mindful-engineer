@@ -32,14 +32,15 @@ wrangler d1 migrations apply mindful-engineer-control-plane
 
 ### Cloudflare Access
 
-Set `ACCESS_PROTECTION_MODE=cloudflare-access` (default in `wrangler.toml`) and place the Worker behind a Cloudflare Access policy. The app verifies the `CF-Access-Jwt-Assertion` header against Cloudflare Access signing keys from your team domain and requires a matching application audience.
+Local and test runs skip auth validation by default so the control plane can be exercised without Cloudflare Access. Deployed Workers should set `ACCESS_PROTECTION_MODE=cloudflare-access` and sit behind a Cloudflare Access policy. The app verifies the `CF-Access-Jwt-Assertion` header against Cloudflare Access signing keys from your team domain and requires a matching application audience.
 
-Required environment variables:
+Required deployed environment variables:
 
+- `ACCESS_PROTECTION_MODE=cloudflare-access`
 - `ACCESS_TEAM_DOMAIN` = `https://<your-team>.cloudflareaccess.com`
 - `ACCESS_AUD` = your Cloudflare Access application audience tag
 
-To ease local dev only, set `ACCESS_PROTECTION_MODE=off` in a local `.dev.vars` file.
+The `npm run dev` script passes `--var ACCESS_PROTECTION_MODE:off` for local `wrangler dev`; if you invoke Wrangler directly, pass that var or put `ACCESS_PROTECTION_MODE=off` in a local `.dev.vars` file.
 
 ### GitHub API secrets
 

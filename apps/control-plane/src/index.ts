@@ -65,8 +65,15 @@ const redirect = (location: string, status = 303) =>
 		},
 	});
 
+const isTestEnvironment = () => process.env.NODE_ENV === "test";
+
+const getAccessProtectionMode = (env: Env) =>
+	isTestEnvironment()
+		? "off"
+		: (env.ACCESS_PROTECTION_MODE ?? "cloudflare-access");
+
 const requireAccess = async (request: Request, env: Env) => {
-	const mode = env.ACCESS_PROTECTION_MODE ?? "cloudflare-access";
+	const mode = getAccessProtectionMode(env);
 	if (mode === "off") {
 		return true;
 	}
@@ -569,7 +576,7 @@ const routeAdminGet = async (request: Request, env: Env) => {
 	if (path === "/admin/settings") {
 		return htmlResponse(
 			renderSettingsPage({
-				accessMode: env.ACCESS_PROTECTION_MODE ?? "cloudflare-access",
+				accessMode: getAccessProtectionMode(env),
 				accessHeaderPresent: hasAccessJwt(request),
 				hasGithubToken: Boolean(env.GITHUB_TOKEN?.trim()),
 				hasGithubOwner: Boolean(env.GITHUB_OWNER?.trim()),
@@ -587,7 +594,7 @@ const routeApiGet = async (request: Request, env: Env) => {
 	if (url.pathname === "/api/control-plane/health") {
 		return jsonResponse({
 			ok: true,
-			accessMode: env.ACCESS_PROTECTION_MODE ?? "cloudflare-access",
+			accessMode: getAccessProtectionMode(env),
 			repositoryConfigured: Boolean(
 				env.GITHUB_OWNER?.trim() &&
 					env.GITHUB_REPO?.trim() &&
