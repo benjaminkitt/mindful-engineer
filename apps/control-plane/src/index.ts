@@ -504,7 +504,7 @@ const routeAdminGet = async (request: Request, env: Env) => {
 			entryType = getEntryType(requestedType);
 		}
 		if (draft) {
-			if (providedFlow) {
+			if (!recovery && providedFlow) {
 				scaffold.assertSameFlow(draft.flowId, "new page draft hydration");
 			}
 			if (!recovery && requestedType) {

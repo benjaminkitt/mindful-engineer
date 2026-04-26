@@ -271,7 +271,7 @@ test("GET /admin/new still rejects a mismatched explicit flowId for an existing 
 	assert.match(html, /name="flowId" value="flow_other_654321"/);
 });
 
-test("GET /admin/new keeps recovery token when draft hydration validation fails", async () => {
+test("GET /admin/new renders valid recovery payload despite stale draft flow", async () => {
 	const recoveryToken = "recover_testtoken";
 	const draftId = "draft_flow_kz9f_123abc_seeded01";
 	const draftFlowId = "flow_kz9f_123abc";
@@ -330,19 +330,19 @@ test("GET /admin/new keeps recovery token when draft hydration validation fails"
 		env,
 	);
 
-	assert.equal(response.status, 500);
+	assert.equal(response.status, 200);
 	const html = await response.text();
-	assert.match(
-		html,
-		/new page draft hydration: expected flow_other_654321, received flow_kz9f_123abc/,
-	);
+	assert.match(html, /Recovered body/);
+	assert.match(html, /Recovered error/);
+	assert.match(html, /name="flowId" value="flow_other_654321"/);
+	assert.doesNotMatch(html, /Hydrated draft body/);
 	assert.equal(
 		db.calls.some(
 			(call) =>
 				call.query.includes("DELETE FROM entry_recoveries WHERE token = ?") &&
 				call.values[0] === recoveryToken,
 		),
-		false,
+		true,
 	);
 });
 
