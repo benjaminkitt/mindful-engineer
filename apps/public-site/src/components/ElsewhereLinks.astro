@@ -1,0 +1,67 @@
+---
+import type { ElsewhereDestination } from "../syndication/workflow";
+
+interface Props {
+	destinations: ElsewhereDestination[];
+}
+
+const { destinations } = Astro.props as Props;
+
+const hasDestinations = destinations.length > 0;
+---
+{hasDestinations ? (
+	<section class="elsewhere" aria-label="Elsewhere">
+		<div class="elsewhere-title">Elsewhere</div>
+		<ul>
+			{destinations.map((destination) => (
+				<li>
+					<a href={destination.url} rel="me noopener noreferrer" target="_blank">
+						<span>{destination.label}</span>
+					</a>
+				</li>
+			))}
+		</ul>
+	</section>
+) : null}
+
+<style>
+	.elsewhere {
+		max-width: var(--measure);
+		margin: var(--s-7) auto 0;
+		border-top: 1px solid var(--c-rule-soft);
+		padding-top: var(--s-4);
+	}
+
+	.elsewhere-title {
+		font-family: var(--ff-mono);
+		font-size: var(--fs-micro);
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--c-ink-mute);
+	}
+
+	.elsewhere ul {
+		list-style: none;
+		margin: var(--s-3) 0 0;
+		padding: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s-4);
+	}
+
+	.elsewhere li {
+		margin: 0;
+	}
+
+	.elsewhere a {
+		font-family: var(--ff-mono);
+		font-size: var(--fs-ui);
+		text-decoration: none;
+		border-bottom: 1px solid var(--c-rule);
+		padding-bottom: 2px;
+	}
+
+	.elsewhere a:hover {
+		border-bottom-color: var(--c-accent);
+	}
+</style>

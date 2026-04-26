@@ -1,0 +1,269 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import {
+	getAllSyndicationStates,
+	getCanonicalPathForEntry,
+	getSyndicationOperationalSnapshot,
+} from "../data/syndication-state";
+import {
+	getAvailableSyndicationActions,
+	getElsewhereDestinations,
+	getPlatformLabel,
+	listSyndicationVariants,
+} from "../syndication/workflow";
+
+const states = getAllSyndicationStates();
+const operationalSnapshot = getSyndicationOperationalSnapshot();
+
+const grouped = states.map((state) => {
+	const variants = listSyndicationVariants(state).map((variant) => ({
+		...variant,
+		label: getPlatformLabel(variant.platform),
+		actions: getAvailableSyndicationActions(variant),
+	}));
+
+	return {
+		state,
+		canonicalPath: getCanonicalPathForEntry(state),
+		variants,
+		elsewhere: getElsewhereDestinations(state),
+	};
+});
+---
+<BaseLayout
+	title="Reviewed Syndication | The Mindful Engineer"
+	description="Syndication review states, approvals, outcomes, and platform actions."
+	path="/syndication"
+>
+	<div class="container">
+		<header class="essay-header" style="max-width: var(--container); margin-bottom: var(--s-6);">
+			<p class="syndication-ledger">
+				Operational rows: {operationalSnapshot.rows.length} / generated {operationalSnapshot.generatedAt}
+			</p>
+			<div class="essay-kicker">
+				<span>control plane</span>
+				<span>/</span>
+				<span>reviewed syndication</span>
+			</div>
+			<h1 class="essay-title" style="font-size: clamp(32px, 4vw, 46px);">Reviewed syndication queue</h1>
+			<p class="essay-sub" style="max-width: 70ch;">
+				Text-first variants are prepared after canonical publish. Authors can approve,
+				skip, retry, or manually post depending on platform integration mode.
+			</p>
+		</header>
+
+		<div class="syndication-grid">
+			{grouped.map(({ state, canonicalPath, variants, elsewhere }) => (
+				<section class="syndication-card">
+					<header>
+						<div class="card-kicker">
+							<span>{state.canonical.kind}</span>
+							<span>{state.entryKey}</span>
+						</div>
+						<h2>
+							<a href={canonicalPath}>{state.canonical.title}</a>
+						</h2>
+						<p>{state.canonical.summary}</p>
+						<dl class="syndication-meta">
+							<div>
+								<dt>Published</dt>
+								<dd>{state.canonical.publishedAt}</dd>
+							</div>
+							<div>
+								<dt>Last flow</dt>
+								<dd>{state.flowId}</dd>
+							</div>
+						</dl>
+					</header>
+
+					<div class="variant-list">
+						{variants.map((variant) => (
+							<article class="variant-item">
+								<div class="variant-header">
+									<h3>{variant.label}</h3>
+									<span class={`status-pill status-${variant.status}`}>{variant.status}</span>
+								</div>
+								<p class="variant-preview">
+									{variant.preview?.text ?? variant.preparedText ?? "Not prepared yet."}
+								</p>
+								{variant.preview ? (
+									<p class="variant-count">
+										{variant.preview.characterCount}
+										{variant.preview.characterLimit
+											? ` / ${variant.preview.characterLimit} chars`
+											: " chars"}
+										{variant.preview.overLimit ? " (over limit)" : ""}
+									</p>
+								) : null}
+								{variant.resultUrl ? (
+									<p class="variant-result">
+										<a href={variant.resultUrl} rel="noopener noreferrer" target="_blank">
+											View posted result
+										</a>
+									</p>
+								) : null}
+								{variant.errorMessage ? (
+									<p class="variant-error">{variant.errorMessage}</p>
+								) : null}
+								<p class="variant-actions">Actions: {variant.actions.join(", ") || "none"}</p>
+								<p class="variant-flow">Flow: {variant.lastFlowId}</p>
+							</article>
+						))}
+					</div>
+
+					{elsewhere.length > 0 ? (
+						<footer class="syndication-elsewhere">
+							<div class="elsewhere-title">Elsewhere</div>
+							<ul>
+								{elsewhere.map((destination) => (
+									<li>
+										<a href={destination.url} rel="noopener noreferrer" target="_blank">
+											{destination.label}
+										</a>
+									</li>
+								))}
+							</ul>
+						</footer>
+					) : null}
+				</section>
+			))}
+		</div>
+	</div>
+</BaseLayout>
+
+<style>
+	.syndication-ledger {
+		font-family: var(--ff-mono);
+		font-size: var(--fs-ui);
+		color: var(--c-ink-mute);
+		margin: 0 0 var(--s-3);
+	}
+
+	.syndication-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: var(--s-5);
+	}
+
+	.syndication-card {
+		border: 1px solid var(--c-rule);
+		padding: var(--s-5);
+		background: var(--c-bg);
+	}
+
+	.syndication-card h2 {
+		font-size: 28px;
+		margin: var(--s-2) 0 var(--s-3);
+	}
+
+	.syndication-card h2 a {
+		text-decoration: none;
+	}
+
+	.syndication-card > header p {
+		color: var(--c-ink-soft);
+		margin-bottom: var(--s-4);
+	}
+
+	.syndication-meta {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--s-3);
+		margin: 0;
+	}
+
+	.syndication-meta dt {
+		font-family: var(--ff-mono);
+		font-size: var(--fs-micro);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--c-ink-mute);
+	}
+
+	.syndication-meta dd {
+		margin: 0;
+		font-family: var(--ff-mono);
+		font-size: var(--fs-ui);
+	}
+
+	.variant-list {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--s-3);
+	}
+
+	.variant-item {
+		border: 1px solid var(--c-rule-soft);
+		padding: var(--s-3);
+		background: var(--c-bg-soft);
+	}
+
+	.variant-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: var(--s-2);
+	}
+
+	.variant-header h3 {
+		font-size: 18px;
+	}
+
+	.status-pill {
+		font-family: var(--ff-mono);
+		font-size: var(--fs-micro);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--c-ink-mute);
+	}
+
+	.status-posted {
+		color: var(--c-accent);
+	}
+
+	.status-failed {
+		color: oklch(50% 0.2 30);
+	}
+
+	.variant-preview {
+		font-size: 16px;
+		line-height: 1.45;
+		margin: var(--s-2) 0 var(--s-3);
+	}
+
+	.variant-count,
+	.variant-actions,
+	.variant-flow,
+	.variant-result,
+	.variant-error {
+		margin: 0 0 var(--s-2);
+		font-family: var(--ff-mono);
+		font-size: var(--fs-ui);
+		color: var(--c-ink-mute);
+	}
+
+	.variant-error {
+		color: oklch(45% 0.16 30);
+	}
+
+	.syndication-elsewhere {
+		margin-top: var(--s-4);
+		border-top: 1px solid var(--c-rule-soft);
+		padding-top: var(--s-3);
+	}
+
+	.syndication-elsewhere ul {
+		margin: var(--s-2) 0 0;
+		padding: 0;
+		list-style: none;
+		display: flex;
+		gap: var(--s-3);
+		flex-wrap: wrap;
+	}
+
+	@media (max-width: 860px) {
+		.variant-list {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

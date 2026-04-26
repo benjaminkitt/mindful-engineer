@@ -1,6 +1,8 @@
 ---
+import ElsewhereLinks from "../../components/ElsewhereLinks.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { formatDisplayDate, getEntryPath, getLinks, type LinkEntry } from "../../data/site";
+import { getElsewhereDestinationsForPath } from "../../data/syndication-state";
 
 export async function getStaticPaths() {
   const links = await getLinks();
@@ -11,8 +13,10 @@ export async function getStaticPaths() {
 }
 
 const { link } = Astro.props as { link: LinkEntry };
+const canonicalPath = getEntryPath(link);
+const elsewhere = getElsewhereDestinationsForPath(canonicalPath);
 ---
-<BaseLayout title={`${link.title} | The Mindful Engineer`} description={link.summary} path={getEntryPath(link)}>
+<BaseLayout title={`${link.title} | The Mindful Engineer`} description={link.summary} path={canonicalPath}>
   <div class="container">
     <div class="essay-header" style="max-width: var(--measure-narrow);">
       <div class="essay-kicker">
@@ -27,6 +31,7 @@ const { link } = Astro.props as { link: LinkEntry };
         Source / <a href={link.url}>{link.source}</a>
       </p>
       <p>{link.body}</p>
+      <ElsewhereLinks destinations={elsewhere} />
     </div>
   </div>
 </BaseLayout>

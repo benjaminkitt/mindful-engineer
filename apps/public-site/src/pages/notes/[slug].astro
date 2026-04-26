@@ -1,6 +1,8 @@
 ---
-import BaseLayout from "../../layouts/BaseLayout.astro";
+import ElsewhereLinks from "../../components/ElsewhereLinks.astro";
 import { formatDisplayDateTime, getEntryPath, getNotes, type Note } from "../../data/site";
+import { getElsewhereDestinationsForPath } from "../../data/syndication-state";
+import BaseLayout from "../../layouts/BaseLayout.astro";
 
 export async function getStaticPaths() {
   const notes = await getNotes();
@@ -11,8 +13,10 @@ export async function getStaticPaths() {
 }
 
 const { note } = Astro.props as { note: Note };
+const canonicalPath = getEntryPath(note);
+const elsewhere = getElsewhereDestinationsForPath(canonicalPath);
 ---
-<BaseLayout title="Note | The Mindful Engineer" description={note.body} path={getEntryPath(note)}>
+<BaseLayout title="Note | The Mindful Engineer" description={note.body} path={canonicalPath}>
   <div class="container">
     <div class="essay-header" style="max-width: var(--measure-narrow);">
       <div class="essay-kicker">
@@ -23,6 +27,7 @@ const { note } = Astro.props as { note: Note };
     </div>
     <div class="essay-body" style="max-width: var(--measure-narrow);">
       <p style="font-size: 26px; line-height: 1.45; font-style: italic;">{note.body}</p>
+      <ElsewhereLinks destinations={elsewhere} />
     </div>
   </div>
 </BaseLayout>

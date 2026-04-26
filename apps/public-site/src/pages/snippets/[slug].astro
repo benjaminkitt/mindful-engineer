@@ -1,6 +1,8 @@
 ---
+import ElsewhereLinks from "../../components/ElsewhereLinks.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { formatDisplayDate, getEntryPath, getSnippets, type Snippet } from "../../data/site";
+import { getElsewhereDestinationsForPath } from "../../data/syndication-state";
 
 export async function getStaticPaths() {
   const snippets = await getSnippets();
@@ -11,8 +13,10 @@ export async function getStaticPaths() {
 }
 
 const { snippet } = Astro.props as { snippet: Snippet };
+const canonicalPath = getEntryPath(snippet);
+const elsewhere = getElsewhereDestinationsForPath(canonicalPath);
 ---
-<BaseLayout title={`${snippet.title} | The Mindful Engineer`} description={snippet.summary} path={getEntryPath(snippet)}>
+<BaseLayout title={`${snippet.title} | The Mindful Engineer`} description={snippet.summary} path={canonicalPath}>
   <div class="container">
     <div class="essay-header" style="max-width: var(--measure-narrow);">
       <div class="essay-kicker">
@@ -27,6 +31,7 @@ const { snippet } = Astro.props as { snippet: Snippet };
     <div class="essay-body" style="max-width: var(--measure-narrow);">
       <pre style="font-family: var(--ff-mono); font-size: 14px; line-height: 1.65; background: var(--c-bg-soft); border: 1px solid var(--c-rule); padding: var(--s-5); overflow-x: auto; white-space: pre;"><code>{snippet.code}</code></pre>
       <p>{snippet.body}</p>
+      <ElsewhereLinks destinations={elsewhere} />
     </div>
   </div>
 </BaseLayout>
